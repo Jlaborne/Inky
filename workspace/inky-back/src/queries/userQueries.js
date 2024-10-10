@@ -1,13 +1,24 @@
-const pool = require('../db/pool');
-const User = require('../models/user');
+const pool = require("../db/pool");
+const User = require("../models/user");
 
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
 
 // Get all users
 const getUsers = async () => {
   try {
-    const resultQuery = await pool.query("SELECT * FROM users ORDER BY id ASC");
-    return resultQuery.rows.map(row => new User(row.id, row.name, row.email));
+    const resultQuery = await pool.query(
+      "SELECT * FROM users ORDER BY uid ASC"
+    );
+    return resultQuery.rows.map((row) => {
+      return new User(
+        row.uid,
+        row.name,
+        row.first_name,
+        row.email,
+        row.password,
+        row.role
+      );
+    });
   } catch (error) {
     console.log(`getUsers error: ${error}`);
     throw error;
@@ -17,7 +28,9 @@ const getUsers = async () => {
 // Get user by ID
 const getUserById = async (id) => {
   try {
-    const resultQuery = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    const resultQuery = await pool.query("SELECT * FROM users WHERE uid = $1", [
+      id,
+    ]);
     const result = resultQuery.rows[0];
     return new User(result.id, result.name, result.email);
   } catch (error) {
@@ -29,15 +42,22 @@ const getUserById = async (id) => {
 // Create a new user
 const createUser = async (user) => {
   try {
-    const userId = uuidv4();
+    //const userId = uuidv4();
     const resultQuery = await pool.query(
-      "INSERT INTO users (id, name, email) VALUES ($1, $2, $3) RETURNING id",
-      [userId, user.name, user.email]
+      "INSERT INTO users (uid, name, first_name, email, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING uid",
+      [
+        user.uid,
+        user.name,
+        user.firstName,
+        user.email,
+        user.password,
+        user.role,
+      ]
     );
     user.id = resultQuery.rows[0].id;
     return user;
   } catch (error) {
-    console.log(`createUser error: ${error}`);
+    console.log(`Queries : createUser error: ${error}`);
     throw error;
   }
 };
@@ -45,10 +65,11 @@ const createUser = async (user) => {
 // Update an existing user
 const updateUser = async (user) => {
   try {
-    await pool.query(
-      "UPDATE users SET name = $1, email = $2 WHERE id = $3",
-      [user.name, user.email, user.id]
-    );
+    await pool.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [
+      user.name,
+      user.email,
+      user.id,
+    ]);
     return user;
   } catch (error) {
     console.log(`updateUser error: ${error}`);
