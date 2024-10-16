@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
 const { auth } = require("../../firebase");
-const { createUserWithEmailAndPassword } = require("firebase/auth");
+const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require("firebase/auth");
 
 // Create a new user
 const createUser = async (req, res) => {
@@ -134,6 +134,25 @@ const registerUser = async (req, res) => {
   }
 };
 
+// Login an existing user
+const loginUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    res.status(200).json({ uid: user.uid, email: user.email });
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createUser,
   getUsers,
@@ -141,4 +160,5 @@ module.exports = {
   updateUser,
   deleteUser,
   registerUser,
+  loginUser
 };
