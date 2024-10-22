@@ -1,31 +1,17 @@
-import logo from './logo.svg';
-import './App.css';
-import TestApiComponent from './components/test_api_components';
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Home from "./components/Home";
+import Register from "./components/Register"; // Import the Register component
 
 function App() {
-  /*return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );*/
   return (
-    <div>
-      <h1>Test API</h1>
-      <TestApiComponent />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/register" element={<Register />} />{" "}
+        {/* Add the register route */}
+      </Routes>
+    </Router>
   );
 }
 
