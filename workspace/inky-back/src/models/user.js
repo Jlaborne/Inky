@@ -1,7 +1,7 @@
 class User {
-  constructor(uid, name, firstName, email, password, role) {
+  constructor(uid, lastName, firstName, email, password, role) {
     this.uid = uid;
-    this.name = name;
+    this.lastName = lastName;
     this.firstName = firstName;
     this.email = email;
     this.password = password;
@@ -11,8 +11,8 @@ class User {
   }
 
   // Method to update user's information
-  updateUser({ name, firstName, email, password, role }) {
-    if (name) this.name = name;
+  updateUser({ lastName, firstName, email, password, role }) {
+    if (lastName) this.lastName = lastName;
     if (firstName) this.firstName = firstName;
     if (email) this.email = email;
     if (password) this.password = password;

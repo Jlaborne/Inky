@@ -2,7 +2,10 @@ const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
 const { auth } = require("../../firebase");
-const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require("firebase/auth");
+const {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} = require("firebase/auth");
 
 // Create a new user
 const createUser = async (req, res) => {
@@ -12,8 +15,8 @@ const createUser = async (req, res) => {
   }
 
   try {
-    const { name, firstName, email, password, role } = req.body;
-    const user = new User(name, firstName, email, password, role);
+    const { lastName, firstName, email, password, role } = req.body;
+    const user = new User(lastName, firstName, email, password, role);
     const result = await userQueries.createUser(user);
     res.status(201).json(result);
   } catch (error) {
@@ -57,7 +60,7 @@ const updateUser = async (req, res) => {
 
     // Créer une instance de l'utilisateur avec les données existantes
     const user = new User(
-      existingUser.name,
+      existingUser.lastName,
       existingUser.firstName,
       existingUser.email,
       existingUser.password,
@@ -66,7 +69,7 @@ const updateUser = async (req, res) => {
 
     // Mise à jour des propriétés de l'utilisateur via la méthode updateUser de la classe
     user.updateUser({
-      name: req.body.name,
+      name: req.body.lastName,
       firstName: req.body.firstName,
       email: req.body.email,
       password: req.body.password ? req.body.password : null, // Ne met à jour le mot de passe que s'il est fourni
@@ -111,7 +114,7 @@ const registerUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, password, name, firstName, role } = req.body;
+  const { email, password, lastName, firstName, role } = req.body;
 
   try {
     // Create user in Firebase
@@ -125,10 +128,19 @@ const registerUser = async (req, res) => {
     const uid = userCredential.user.uid;
 
     // Save user to your Postgres database
-    const user = new User(uid, name, firstName, email, password, role);
+    const user = new User(uid, lastName, firstName, email, password, role);
     await userQueries.createUser(user); // Adjust your createUser query to accept uid
 
-    res.status(201).json({ uid });
+    // Redirect based on role
+    if (role === "tattoo") {
+      res.status(201).json({
+        uid,
+        message: "Tattoo artist registered. Please create your profile.",
+        redirectTo: "/create-tattoo-artist-page", // Frontend route to create tattoo artist page
+      });
+    } else {
+      res.status(201).json({ uid, message: "User registered successfully." });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -144,7 +156,11 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
     const user = userCredential.user;
 
     res.status(200).json({ uid: user.uid, email: user.email });
@@ -160,5 +176,5 @@ module.exports = {
   updateUser,
   deleteUser,
   registerUser,
-  loginUser
+  loginUser,
 };

@@ -12,7 +12,7 @@ const getUsers = async () => {
     return resultQuery.rows.map((row) => {
       return new User(
         row.uid,
-        row.name,
+        row.last_name,
         row.first_name,
         row.email,
         row.password,
@@ -32,7 +32,7 @@ const getUserById = async (id) => {
       id,
     ]);
     const result = resultQuery.rows[0];
-    return new User(result.id, result.name, result.email);
+    return new User(result.id, result.last_name, result.email);
   } catch (error) {
     console.log(`getUserById error: ${error}`);
     throw error;
@@ -44,17 +44,17 @@ const createUser = async (user) => {
   try {
     //const userId = uuidv4();
     const resultQuery = await pool.query(
-      "INSERT INTO users (uid, name, first_name, email, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING uid",
+      "INSERT INTO users (uid, last_name, first_name, email, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING uid",
       [
         user.uid,
-        user.name,
+        user.lastName,
         user.firstName,
         user.email,
         user.password,
         user.role,
       ]
     );
-    user.id = resultQuery.rows[0].id;
+    user.id = resultQuery.rows[0].uid;
     return user;
   } catch (error) {
     console.log(`Queries : createUser error: ${error}`);
@@ -66,7 +66,7 @@ const createUser = async (user) => {
 const updateUser = async (user) => {
   try {
     await pool.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [
-      user.name,
+      user.last_name,
       user.email,
       user.id,
     ]);

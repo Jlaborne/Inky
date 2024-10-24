@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
+const tattooArtistRoutes = require("./src/routes/tattooArtistsRoutes");
 const authenticateToken = require("./middleware/authenticateToken");
 
 const app = express();
@@ -15,6 +16,8 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 
 app.use("/api", userRoutes);
+
+app.use(tattooArtistRoutes);
 
 // Example of a protected route
 app.get("/protected", authenticateToken, (req, res) => {
