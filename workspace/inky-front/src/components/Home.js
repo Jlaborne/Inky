@@ -1,26 +1,221 @@
-import React from "react";
+import React, { useState } from "react";
+import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
 
 const Home = () => {
+  const [isLogin, setIsLogin] = useState(true); // State to toggle between login and register
+  const [registerData, setRegisterData] = useState({
+    name: "",
+    firstName: "",
+    email: "",
+    password: "",
+    role: "user", // Default role
+  });
+
+  const [loginData, setLoginData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleRegisterInputChange = (e) => {
+    const { name, value } = e.target;
+    setRegisterData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleLoginInputChange = (e) => {
+    const { name, value } = e.target;
+    setLoginData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmitRegister = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:5000/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registerData), // Send the registration data
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMessage("User registered successfully!");
+        setErrorMessage(""); // Clear any previous error messages
+        setRegisterData({
+          name: "",
+          firstName: "",
+          email: "",
+          password: "",
+          role: "user",
+        });
+      } else {
+        setErrorMessage(data.message || "Registration failed.");
+        setSuccessMessage(""); // Clear any previous success messages
+      }
+    } catch (error) {
+      setErrorMessage("An error occurred. Please try again.");
+      console.error("Error during registration:", error);
+    }
+  };
+
+  const handleSubmitLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData), // Send the login data
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMessage("Login successful!");
+        setErrorMessage(""); // Clear any previous error messages
+      } else {
+        setErrorMessage(data.message || "Login failed.");
+        setSuccessMessage(""); // Clear any previous success messages
+      }
+    } catch (error) {
+      setErrorMessage("An error occurred. Please try again.");
+      console.error("Error during login:", error);
+    }
+  };
+
   return (
-    <div className="home">
-      <header className="home-header">
-        <h1>Welcome to My Web App</h1>
-        <p>Your one-stop platform for [your app’s purpose].</p>
-        <a href="/register" className="btn">
-          Get Started
-        </a>
+    <Container className="mt-5">
+      <header className="text-center mb-4">
+        <h1>Inky Web App</h1>
+        <p>Votre application dédiée aux flash tatoo.</p>
       </header>
-      <section className="features">
-        <div className="feature-card">
-          <h3>Feature 1</h3>
-          <p>Brief description of the feature.</p>
-        </div>
-        <div className="feature-card">
-          <h3>Feature 2</h3>
-          <p>Brief description of the feature.</p>
-        </div>
-      </section>
-    </div>
+
+      {/* Toggle Buttons */}
+      <div className="text-center mb-4">
+        <Button variant="outline-primary" onClick={() => setIsLogin(true)} className="me-2">
+          Se connecter
+        </Button>
+        <Button variant="outline-secondary" onClick={() => setIsLogin(false)}>
+          Créer un compte
+        </Button>
+      </div>
+
+      {successMessage && <Alert variant="success">{successMessage}</Alert>}
+      {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+
+      <Row className="justify-content-center">
+        <Col md={6}>
+          <Card className="p-4">
+            <h2 className="text-center mb-3">{isLogin ? "Login" : "Register"}</h2>
+            <Form onSubmit={isLogin ? handleSubmitLogin : handleSubmitRegister}>
+              {isLogin ? (
+                <>
+                  <Form.Group controlId="formEmail">
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      value={loginData.email}
+                      onChange={handleLoginInputChange}
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group controlId="formPasswordLogin">
+                    <Form.Label>Password</Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="password"
+                      value={loginData.password}
+                      onChange={handleLoginInputChange}
+                      placeholder="Password"
+                      required
+                    />
+                  </Form.Group>
+                </>
+              ) : (
+                <>
+                  <Form.Group controlId="formName">
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="name"
+                      value={registerData.name}
+                      onChange={handleRegisterInputChange}
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group controlId="formFirstName">
+                    <Form.Label>First Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="firstName"
+                      value={registerData.firstName}
+                      onChange={handleRegisterInputChange}
+                      placeholder="Enter your first name"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group controlId="formEmailRegister">
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      value={registerData.email}
+                      onChange={handleRegisterInputChange}
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group controlId="formPasswordRegister">
+                    <Form.Label>Password</Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="password"
+                      value={registerData.password}
+                      onChange={handleRegisterInputChange}
+                      placeholder="Password"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group>
+                    <Form.Label>Select Role</Form.Label>
+                    <Form.Check
+                      type="radio"
+                      name="role"
+                      label="User"
+                      value="user"
+                      checked={registerData.role === "user"}
+                      onChange={handleRegisterInputChange}
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="role"
+                      label="Tattoo Artist"
+                      value="tattoo"
+                      onChange={handleRegisterInputChange}
+                    />
+                  </Form.Group>
+                </>
+              )}
+              <Button variant="success" type="submit" className="w-100">
+                {isLogin ? "Login" : "Register"}
+              </Button>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 
