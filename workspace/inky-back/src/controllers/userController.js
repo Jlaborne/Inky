@@ -110,6 +110,7 @@ const deleteUser = async (req, res) => {
 // Register user
 const registerUser = async (req, res) => {
   const errors = validationResult(req);
+  console.log("Request Body:", req.body);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
@@ -146,7 +147,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Login an existing user
 const loginUser = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -156,16 +156,34 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // Authenticate with Firebase
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-    const user = userCredential.user;
+    const uid = userCredential.user.uid;
 
-    res.status(200).json({ uid: user.uid, email: user.email });
+    // Retrieve user from PostgreSQL database
+    const user = await userQueries.getUserById(uid);
+
+    // Check if the user was retrieved successfully
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Send response with user information
+    res.status(200).json({
+      uid: user.uid,
+      role: user.role, // Assuming you have a role property in your User model
+      message: "Login successful",
+    });
   } catch (error) {
-    res.status(401).json({ error: error.message });
+    console.error("Error during login:", error);
+    if (error.message.includes("not found")) {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 

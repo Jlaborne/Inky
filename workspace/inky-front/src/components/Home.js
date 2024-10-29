@@ -1,10 +1,20 @@
 import React, { useState } from "react";
-import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
+import {
+  Button,
+  Form,
+  Card,
+  Container,
+  Row,
+  Col,
+  Alert,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true); // State to toggle between login and register
   const [registerData, setRegisterData] = useState({
-    name: "",
+    lastName: "",
     firstName: "",
     email: "",
     password: "",
@@ -45,13 +55,13 @@ const Home = () => {
         },
         body: JSON.stringify(registerData), // Send the registration data
       });
-  
+
       const data = await response.json();
       if (response.ok) {
         setSuccessMessage("User registered successfully!");
         setErrorMessage(""); // Clear any previous error messages
         setRegisterData({
-          name: "",
+          lastName: "",
           firstName: "",
           email: "",
           password: "",
@@ -77,11 +87,18 @@ const Home = () => {
         },
         body: JSON.stringify(loginData), // Send the login data
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        setSuccessMessage("Login successful!");
-        setErrorMessage(""); // Clear any previous error messages
+        // Check if the user is a tattoo artist
+        if (data.role === "tattoo") {
+          navigate("/create-tattoo-artist-page"); // Redirect to tattoo artist page
+        } else {
+          setSuccessMessage("Login successful!");
+          setErrorMessage(""); // Clear any previous error messages
+          // Optionally redirect to a different page for regular users
+          navigate("/user-home-page"); // Adjust this route as necessary
+        }
       } else {
         setErrorMessage(data.message || "Login failed.");
         setSuccessMessage(""); // Clear any previous success messages
@@ -101,7 +118,11 @@ const Home = () => {
 
       {/* Toggle Buttons */}
       <div className="text-center mb-4">
-        <Button variant="outline-primary" onClick={() => setIsLogin(true)} className="me-2">
+        <Button
+          variant="outline-primary"
+          onClick={() => setIsLogin(true)}
+          className="me-2"
+        >
           Se connecter
         </Button>
         <Button variant="outline-secondary" onClick={() => setIsLogin(false)}>
@@ -115,7 +136,9 @@ const Home = () => {
       <Row className="justify-content-center">
         <Col md={6}>
           <Card className="p-4">
-            <h2 className="text-center mb-3">{isLogin ? "Login" : "Register"}</h2>
+            <h2 className="text-center mb-3">
+              {isLogin ? "Login" : "Register"}
+            </h2>
             <Form onSubmit={isLogin ? handleSubmitLogin : handleSubmitRegister}>
               {isLogin ? (
                 <>
@@ -144,14 +167,14 @@ const Home = () => {
                 </>
               ) : (
                 <>
-                  <Form.Group controlId="formName">
-                    <Form.Label>Name</Form.Label>
+                  <Form.Group controlId="formLastName">
+                    <Form.Label>Last Name</Form.Label>
                     <Form.Control
                       type="text"
-                      name="name"
-                      value={registerData.name}
+                      name="lastName"
+                      value={registerData.lastName}
                       onChange={handleRegisterInputChange}
-                      placeholder="Enter your name"
+                      placeholder="Enter your last name"
                       required
                     />
                   </Form.Group>

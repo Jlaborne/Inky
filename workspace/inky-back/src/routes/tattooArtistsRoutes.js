@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Create a new tattoo artist profile
 router.post(
-  "/tattoo-artists",
+  "/artists",
   [
     check("userUid").notEmpty().withMessage("User UID is required"),
     check("title").notEmpty().withMessage("Title is required"),
@@ -27,17 +27,17 @@ router.post(
 );
 
 // Get all tattoo artists
-router.get("/tattoo-artists", tattooArtistController.getTattooArtists);
+router.get("/artists", tattooArtistController.getTattooArtists);
 
 // Get a tattoo artist by user UID
 router.get(
-  "/tattoo-artists/:userUid",
+  "/artists/:userUid",
   tattooArtistController.getTattooArtistByUserUid
 );
 
 // Update a tattoo artist profile
 router.put(
-  "/tattoo-artists/:userUid",
+  "/artists/:userUid",
   [
     check("title").optional().notEmpty().withMessage("Title cannot be empty"),
     check("phone")
@@ -57,9 +57,6 @@ router.put(
   tattooArtistController.updateTattooArtist
 );
 
-router.delete(
-  "/tattoo-artists/:userUid",
-  tattooArtistController.deleteTattooArtist
-);
+router.delete("/artists/:userUid", tattooArtistController.deleteTattooArtist);
 
 module.exports = router;

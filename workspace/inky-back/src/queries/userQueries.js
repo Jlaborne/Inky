@@ -25,14 +25,24 @@ const getUsers = async () => {
   }
 };
 
-// Get user by ID
-const getUserById = async (id) => {
+const getUserById = async (uid) => {
   try {
     const resultQuery = await pool.query("SELECT * FROM users WHERE uid = $1", [
-      id,
+      uid,
     ]);
     const result = resultQuery.rows[0];
-    return new User(result.id, result.last_name, result.email);
+
+    // Check if result is undefined
+    if (!result) {
+      throw new Error(`User with UID ${uid} not found.`);
+    }
+
+    return {
+      uid: result.uid,
+      lastName: result.last_name,
+      email: result.email,
+      role: result.role, // Make sure you have a 'role' field in your database
+    };
   } catch (error) {
     console.log(`getUserById error: ${error}`);
     throw error;
