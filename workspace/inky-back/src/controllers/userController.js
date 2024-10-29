@@ -1,8 +1,8 @@
-const { validationResult } = require('express-validator');
-const userQueries = require('../queries/userQueries');
-const User = require('../models/user');
+const { validationResult } = require("express-validator");
+const userQueries = require("../queries/userQueries");
+const User = require("../models/user");
 const { auth } = require("../../firebase");
-const { createUserWithEmailAndPassword } = require('firebase/auth');
+const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require("firebase/auth");
 
 // Create a new user
 const createUser = async (req, res) => {
@@ -12,7 +12,8 @@ const createUser = async (req, res) => {
   }
 
   try {
-    const user = new User(-1, req.body.name, req.body.email);
+    const { name, firstName, email, password, role } = req.body;
+    const user = new User(name, firstName, email, password, role);
     const result = await userQueries.createUser(user);
     res.status(201).json(result);
   } catch (error) {
@@ -36,7 +37,7 @@ const getUserById = async (req, res) => {
     const id = req.params.id;
     const result = await userQueries.getUserById(id);
     if (!result) {
-        return res.status(404).send("User not found");
+      return res.status(404).send("User not found");
     }
     res.status(200).json(result);
   } catch (error) {
@@ -47,6 +48,42 @@ const getUserById = async (req, res) => {
 // Update an existing user
 const updateUser = async (req, res) => {
   try {
+    // Chercher l'utilisateur existant via son ID (vérification base de données)
+    const existingUser = await userQueries.getUserById(req.params.id);
+
+    if (!existingUser) {
+      return res.status(404).send("User not found");
+    }
+
+    // Créer une instance de l'utilisateur avec les données existantes
+    const user = new User(
+      existingUser.name,
+      existingUser.firstName,
+      existingUser.email,
+      existingUser.password,
+      existingUser.role
+    );
+
+    // Mise à jour des propriétés de l'utilisateur via la méthode updateUser de la classe
+    user.updateUser({
+      name: req.body.name,
+      firstName: req.body.firstName,
+      email: req.body.email,
+      password: req.body.password ? req.body.password : null, // Ne met à jour le mot de passe que s'il est fourni
+      role: req.body.role,
+    });
+
+    // Sauvegarde des modifications dans la base de données
+    const result = await userQueries.updateUser(req.params.id, user);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).send("Error updating user");
+  }
+};
+/*
+const updateUser = async (req, res) => {
+  try {
     const user = new User(req.params.id, req.body.name, req.body.email);
     const result = await userQueries.updateUser(user);
     res.status(200).json(result);
@@ -54,6 +91,7 @@ const updateUser = async (req, res) => {
     res.status(500).send("Error updating user");
   }
 };
+*/
 
 // Delete a user
 const deleteUser = async (req, res) => {
@@ -73,13 +111,45 @@ const registerUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
+  const { email, password, name, firstName, role } = req.body;
+
+  try {
+    // Create user in Firebase
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    // Get the Firebase UID
+    const uid = userCredential.user.uid;
+
+    // Save user to your Postgres database
+    const user = new User(uid, name, firstName, email, password, role);
+    await userQueries.createUser(user); // Adjust your createUser query to accept uid
+
+    res.status(201).json({ uid });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Login an existing user
+const loginUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email, password } = req.body;
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password); // Use auth from imported firebase module
-    res.status(201).json({ uid: userCredential.user.uid });
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    res.status(200).json({ uid: user.uid, email: user.email });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(401).json({ error: error.message });
   }
 };
 
@@ -90,4 +160,5 @@ module.exports = {
   updateUser,
   deleteUser,
   registerUser,
+  loginUser
 };

@@ -20,6 +20,7 @@ router.get("/users/:id", userController.getUserById);
 router.put("/users/:id", userController.updateUser);
 router.delete("/users/:id", userController.deleteUser);
 
+/*
 router.post(
   "/register",
   [
@@ -28,5 +29,6 @@ router.post(
   ],
   userController.registerUser // Make sure you have a function for handling user registration
 );
+*/
 
 module.exports = router;

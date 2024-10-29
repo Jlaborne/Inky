@@ -1,28 +1,27 @@
+require("dotenv").config();
 const express = require("express");
-const cors = require("cors"); 
+const cors = require("cors");
+const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
-
-require('./firebase');
+const authenticateToken = require("./middleware/authenticateToken");
 
 const app = express();
-const port = process.env.PORT || 5000;
 
-// Middleware setup
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// API routes
+// Public routes (registration and login)
+app.use("/auth", authRoutes);
+
 app.use("/api", userRoutes);
 
-// Catch-all route for root URL
-app.get("/", (req, res) => {
-  res.json({ info: "Node.js, Express, and Postgres API" });
+// Example of a protected route
+app.get("/protected", authenticateToken, (req, res) => {
+  res.json({ message: "This is a protected route", user: req.user });
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`App running on port ${port}.`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-module.exports = app;
