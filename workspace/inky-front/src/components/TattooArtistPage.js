@@ -1,17 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect  } from "react";
 import { Button, Form, Container, Alert } from "react-bootstrap";
+import { auth } from "../firebase/firebase";
 
 const TattooArtistPage = () => {
   const [artistData, setArtistData] = useState({
     title: "",
-    phoneNumber: "",
+    phone: "",
     email: "",
     instagramLink: "",
     facebookLink: "",
   });
-
+  const [userUid, setUserUid] = useState(null); // Store user UID
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUserUid(user.uid);
+        console.log("User UID:", user.uid);
+      } else {
+        console.error("Auth state changed but no user found. Please log in again.");
+      }
+    });
+
+    return () => unsubscribe(); // Clean up listener on unmount
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,13 +37,20 @@ const TattooArtistPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!userUid) {
+      setErrorMessage("User UID not available. Please log in again.");
+      return;
+    }
+
     try {
-      const response = await fetch("http://localhost:5000/artists", {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch("http://localhost:5000/api/artists", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(artistData),
+        body: JSON.stringify({ ...artistData, userUid }), // Include user UID in the payload
       });
 
       const data = await response.json();
@@ -37,7 +58,7 @@ const TattooArtistPage = () => {
         setSuccessMessage("Tattoo artist profile created successfully!");
         setArtistData({
           title: "",
-          phoneNumber: "",
+          phone: "",
           email: "",
           instagramLink: "",
           facebookLink: "",
@@ -68,12 +89,12 @@ const TattooArtistPage = () => {
             required
           />
         </Form.Group>
-        <Form.Group controlId="formPhoneNumber">
+        <Form.Group controlId="formPhone">
           <Form.Label>Phone Number</Form.Label>
           <Form.Control
             type="text"
-            name="phoneNumber"
-            value={artistData.phoneNumber}
+            name="phone"
+            value={artistData.phone}
             onChange={handleInputChange}
             placeholder="Enter your phone number"
             required

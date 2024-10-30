@@ -1,6 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const tattooArtistController = require("../controllers/tattooArtistController");
+const authenticateToken = require("../middleware/authenticateToken");
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.post(
       .isURL()
       .withMessage("Valid Facebook link is required"),
   ],
+  authenticateToken,
   tattooArtistController.createTattooArtist
 );
 
@@ -54,6 +56,7 @@ router.put(
       .isURL()
       .withMessage("Valid Facebook link is required"),
   ],
+  authenticateToken,
   tattooArtistController.updateTattooArtist
 );
 

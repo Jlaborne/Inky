@@ -17,7 +17,7 @@ app.use("/auth", authRoutes);
 
 app.use("/api", userRoutes);
 
-app.use(tattooArtistRoutes);
+app.use("/api", tattooArtistRoutes);
 
 // Example of a protected route
 app.get("/protected", authenticateToken, (req, res) => {

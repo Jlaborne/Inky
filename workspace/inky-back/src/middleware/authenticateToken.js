@@ -1,19 +1,29 @@
-const admin = require('firebase-admin');
+require("dotenv").config();
+const admin = require("firebase-admin");
+
+// Use `cert()` with the JSON file path from the environment variable
+const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+admin.initializeApp({
+  credential: admin.credential.cert(require(serviceAccountPath)),
+});
 
 // Middleware to verify Firebase token
 const authenticateToken = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Expect 'Bearer <token>'
-
+  const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
-    return res.status(403).json({ error: 'No token provided' });
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
   try {
+    // Verify the token using Firebase Admin
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken; // Attach the decoded user info to the request
-    next(); // Proceed to the next middleware or route
+    console.log("Decoded token:", decodedToken);
+    req.user = decodedToken; // Attach user data to the request
+    next(); // Proceed to the next middleware/route handler
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    console.error("Token verification error:", error);
+    return res.status(403).json({ message: "Forbidden: Invalid token" });
   }
 };
 

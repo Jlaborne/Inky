@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { signUp, signIn } from '../firebase/auth'; // Adjust the import path if necessary
 
 const Home = () => {
   const navigate = useNavigate();
@@ -80,33 +81,34 @@ const Home = () => {
   const handleSubmitLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginData), // Send the login data
-      });
+      const userCredential = await signIn(loginData.email, loginData.password);
+      const user = userCredential.user;
 
-      const data = await response.json();
-      if (response.ok) {
-        // Check if the user is a tattoo artist
-        if (data.role === "tattoo") {
-          navigate("/create-tattoo-artist-page"); // Redirect to tattoo artist page
-        } else {
-          setSuccessMessage("Login successful!");
-          setErrorMessage(""); // Clear any previous error messages
-          // Optionally redirect to a different page for regular users
-          navigate("/user-home-page"); // Adjust this route as necessary
-        }
+      // Fetch user role from your backend
+      const role = await fetchUserRole(user.uid); // Implement this function
+
+      // Redirect based on user role
+      if (role === "tattoo") {
+        navigate("/create-tattoo-artist-page"); // Redirect to tattoo artist page
       } else {
-        setErrorMessage(data.message || "Login failed.");
-        setSuccessMessage(""); // Clear any previous success messages
+        setSuccessMessage("Login successful!");
+        setErrorMessage(""); // Clear any previous error messages
+        navigate("/user-home-page"); // Adjust this route as necessary
       }
     } catch (error) {
-      setErrorMessage("An error occurred. Please try again.");
-      console.error("Error during login:", error);
+      setErrorMessage(error.message || "Login failed.");
+      setSuccessMessage(""); // Clear any previous success messages
     }
+  };
+
+  // Function to fetch user role
+  const fetchUserRole = async (uid) => {
+    const response = await fetch(`http://localhost:5000/api/users/${uid}`); // Adjust endpoint as necessary
+    if (!response.ok) {
+      throw new Error("Failed to fetch user role");
+    }
+    const data = await response.json();
+    return data.role; // Assuming your response has a role field
   };
 
   return (
