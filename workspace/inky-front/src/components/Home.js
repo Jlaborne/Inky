@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { signUp, signIn } from '../firebase/auth'; // Adjust the import path if necessary
+import { signUp, signIn } from "../firebase/auth"; // Adjust the import path if necessary
 
 const Home = () => {
   const navigate = useNavigate();
@@ -89,7 +89,7 @@ const Home = () => {
 
       // Redirect based on user role
       if (role === "tattoo") {
-        navigate("/create-tattoo-artist-page"); // Redirect to tattoo artist page
+        navigate("/create-artist"); // Redirect to tattoo artist page
       } else {
         setSuccessMessage("Login successful!");
         setErrorMessage(""); // Clear any previous error messages

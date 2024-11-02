@@ -1,30 +1,34 @@
-import React, { useState, useEffect  } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Form, Container, Alert } from "react-bootstrap";
 import { auth } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
-const TattooArtistPage = () => {
+const CreateArtistPage = () => {
   const [artistData, setArtistData] = useState({
     title: "",
     phone: "",
-    email: "",
+    description: "",
+    city: "",
     instagramLink: "",
     facebookLink: "",
   });
-  const [userUid, setUserUid] = useState(null); // Store user UID
+  const [userUid, setUserUid] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUserUid(user.uid);
-        console.log("User UID:", user.uid);
       } else {
-        console.error("Auth state changed but no user found. Please log in again.");
+        console.error(
+          "Auth state changed but no user found. Please log in again."
+        );
       }
     });
 
-    return () => unsubscribe(); // Clean up listener on unmount
+    return () => unsubscribe();
   }, []);
 
   const handleInputChange = (e) => {
@@ -48,9 +52,9 @@ const TattooArtistPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...artistData, userUid }), // Include user UID in the payload
+        body: JSON.stringify({ ...artistData, userUid }),
       });
 
       const data = await response.json();
@@ -59,10 +63,14 @@ const TattooArtistPage = () => {
         setArtistData({
           title: "",
           phone: "",
-          email: "",
+          description: "",
+          city: "",
           instagramLink: "",
           facebookLink: "",
         });
+
+        // Redirect to the artist page after successful creation
+        navigate(`/artist/${userUid}`); // Replace with the actual path to the artist page
       } else {
         setErrorMessage(data.message || "Failed to create profile.");
       }
@@ -100,14 +108,25 @@ const TattooArtistPage = () => {
             required
           />
         </Form.Group>
-        <Form.Group controlId="formEmail">
-          <Form.Label>Email</Form.Label>
+        <Form.Group controlId="formDescription">
+          <Form.Label>Description</Form.Label>
           <Form.Control
-            type="email"
-            name="email"
-            value={artistData.email}
+            as="textarea"
+            name="description"
+            value={artistData.description}
             onChange={handleInputChange}
-            placeholder="Enter your email"
+            placeholder="Enter a description"
+            required
+          />
+        </Form.Group>
+        <Form.Group controlId="formCity">
+          <Form.Label>City</Form.Label>
+          <Form.Control
+            type="text"
+            name="city"
+            value={artistData.city}
+            onChange={handleInputChange}
+            placeholder="Enter your city"
             required
           />
         </Form.Group>
@@ -139,4 +158,4 @@ const TattooArtistPage = () => {
   );
 };
 
-export default TattooArtistPage;
+export default CreateArtistPage;

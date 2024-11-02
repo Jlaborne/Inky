@@ -1,46 +1,77 @@
-const tattooArtistQueries = require("../queries/tattooArtistQueries");
 const { validationResult } = require("express-validator");
+const admin = require("firebase-admin");
+const tattooArtistQueries = require("../queries/tattooArtistQueries");
 
+// Create a new tattoo artist profile
 const createTattooArtist = async (req, res) => {
   const errors = validationResult(req);
+  console.log("Request body for createTattooArtist:", req.body);
+
+  // Check for validation errors
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { userUid, title, phone, email, instagramLink, facebookLink } =
+  // Destructure fields from the request body
+  const { title, phone, instagramLink, facebookLink, description, city } =
     req.body;
+  const userUid = req.user.uid; // Access UID from the decoded token
 
   try {
-    // Create the tattoo artist profile
+    // Fetch the user's email directly from Firebase Admin using userUid
+    const user = await admin.auth().getUser(userUid);
+    const email = user.email;
+
+    // Construct the new tattoo artist profile object
     const newTattooArtist = {
-      user_uid: userUid, // Reference the user UID from the request
-      title: title,
-      phone: phone,
-      email: email,
-      instagram_link: instagramLink || null, // Optional fields
+      user_uid: userUid,
+      title,
+      phone,
+      email, // Email fetched from Firebase
+      instagram_link: instagramLink || null,
       facebook_link: facebookLink || null,
+      description: description || null,
+      city: city || null,
     };
 
-    // Call the query to insert the new tattoo artist
+    // Log the new tattoo artist data for debugging
+    console.log("Creating tattoo artist with data:", newTattooArtist);
+
+    // Insert the new tattoo artist profile into the database
     const result = await tattooArtistQueries.createTattooArtist(
       newTattooArtist
     );
-    res.status(201).json(result);
+    res.status(201).json({
+      message: "Tattoo artist profile created successfully!",
+      userUid: result.user_uid,
+    });
   } catch (error) {
+    // Enhanced error handling
     console.error("createTattooArtist error:", error);
-    res.status(500).json({ error: error.message });
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({ error: "User not found" });
+    } else if (error.code === "auth/invalid-user-token") {
+      return res.status(401).json({ error: "Invalid user token" });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 };
 
+// Get all tattoo artists
 const getTattooArtists = async (req, res) => {
+  const { city, title } = req.query; // Capture optional query parameters
+
   try {
-    const artists = await tattooArtistQueries.getTattooArtists();
+    // Fetch artists with filtering based on query parameters
+    const artists = await tattooArtistQueries.getTattooArtists({ city, title });
     res.status(200).json(artists);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// Get a tattoo artist by user UID
 const getTattooArtistByUserUid = async (req, res) => {
   const { userUid } = req.params;
 
@@ -49,15 +80,39 @@ const getTattooArtistByUserUid = async (req, res) => {
     if (!artist) {
       return res.status(404).json({ message: "Tattoo artist not found" });
     }
-    res.status(200).json(artist);
+
+    // Log the artist data for debugging
+    console.log("Artist data fetched:", artist);
+
+    // Construct the response object
+    const response = {
+      title: artist.title,
+      phone: artist.phone,
+      description: artist.description,
+      city: artist.city,
+      instagramLink: artist.instagramLink || null,
+      facebookLink: artist.facebookLink || null,
+    };
+
+    res.status(200).json(response); // Return the formatted response
   } catch (error) {
+    console.error("Error fetching tattoo artist:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// Update a tattoo artist profile
 const updateTattooArtist = async (req, res) => {
   const { userUid } = req.params;
-  const { title, phone, email, instagramLink, facebookLink } = req.body;
+  const {
+    title,
+    phone,
+    email,
+    instagramLink,
+    facebookLink,
+    description,
+    city,
+  } = req.body;
 
   try {
     const updatedArtist = await tattooArtistQueries.updateTattooArtist(
@@ -68,6 +123,8 @@ const updateTattooArtist = async (req, res) => {
         email,
         instagramLink,
         facebookLink,
+        description,
+        city,
       }
     );
     res.status(200).json(updatedArtist);
@@ -76,14 +133,15 @@ const updateTattooArtist = async (req, res) => {
   }
 };
 
-// Delete a TattooArtist
+// Delete a tattoo artist
 const deleteTattooArtist = async (req, res) => {
+  const { userUid } = req.params;
+
   try {
-    const { userUid } = req.params;
     await tattooArtistQueries.deleteTattooArtist(userUid);
-    res.status(200).send("TattooArtist deleted");
+    res.status(200).send("Tattoo artist deleted");
   } catch (error) {
-    res.status(500).send("Error deleting TattooArtist");
+    res.status(500).send("Error deleting tattoo artist");
   }
 };
 

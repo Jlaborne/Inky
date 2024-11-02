@@ -14,7 +14,8 @@ router.post(
     check("userUid").notEmpty().withMessage("User UID is required"),
     check("title").notEmpty().withMessage("Title is required"),
     check("phone").notEmpty().withMessage("Phone number is required"),
-    check("email").isEmail().withMessage("Valid email is required"),
+    check("description").optional(),
+    check("city").notEmpty().withMessage("City is required"),
     check("instagramLink")
       .optional()
       .isURL()
@@ -46,7 +47,11 @@ router.put(
       .optional()
       .notEmpty()
       .withMessage("Phone number cannot be empty"),
-    check("email").optional().isEmail().withMessage("Valid email is required"),
+    check("description")
+      .optional()
+      .notEmpty()
+      .withMessage("Description cannot be empty"),
+    check("city").optional().notEmpty().withMessage("City cannot be empty"),
     check("instagramLink")
       .optional()
       .isURL()
