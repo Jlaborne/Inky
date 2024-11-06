@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Form, Container, Alert } from "react-bootstrap";
 import { auth } from "../firebase/firebase";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const CreateArtistPage = () => {
   const [artistData, setArtistData] = useState({
@@ -9,18 +9,33 @@ const CreateArtistPage = () => {
     phone: "",
     description: "",
     city: "",
-    instagramLink: "",
-    facebookLink: "",
+    instagram_link: "",
+    facebook_link: "",
   });
   const [userUid, setUserUid] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUserUid(user.uid);
+        
+        // Check if the artist profile already exists
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch(`http://localhost:5000/api/artists/${user.uid}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          // If artist exists, redirect to their profile page
+          navigate(`/artist/${user.uid}`);
+        } else if (response.status !== 404) {
+          console.error("Error checking artist profile:", response.statusText);
+        }
       } else {
         console.error(
           "Auth state changed but no user found. Please log in again."
@@ -29,7 +44,7 @@ const CreateArtistPage = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,12 +80,12 @@ const CreateArtistPage = () => {
           phone: "",
           description: "",
           city: "",
-          instagramLink: "",
-          facebookLink: "",
+          instagram_link: "",
+          facebook_link: "",
         });
 
         // Redirect to the artist page after successful creation
-        navigate(`/artist/${userUid}`); // Replace with the actual path to the artist page
+        navigate(`/artist/${userUid}`);
       } else {
         setErrorMessage(data.message || "Failed to create profile.");
       }
@@ -130,22 +145,22 @@ const CreateArtistPage = () => {
             required
           />
         </Form.Group>
-        <Form.Group controlId="formInstagram">
+        <Form.Group controlId="formInstagramLink">
           <Form.Label>Instagram Link</Form.Label>
           <Form.Control
             type="text"
-            name="instagramLink"
-            value={artistData.instagramLink}
+            name="instagram_link"
+            value={artistData.instagram_link}
             onChange={handleInputChange}
             placeholder="Enter your Instagram link"
           />
         </Form.Group>
-        <Form.Group controlId="formFacebook">
+        <Form.Group controlId="formFacebookLink">
           <Form.Label>Facebook Link</Form.Label>
           <Form.Control
             type="text"
-            name="facebookLink"
-            value={artistData.facebookLink}
+            name="facebook_link"
+            value={artistData.facebook_link}
             onChange={handleInputChange}
             placeholder="Enter your Facebook link"
           />
