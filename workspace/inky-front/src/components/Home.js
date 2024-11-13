@@ -92,33 +92,33 @@ const Home = () => {
               {!isLogin && (
                 <>
                   <Form.Group controlId="formLastName" className="mb-3">
-                    <Form.Label>Last Name</Form.Label>
+                    <Form.Label>Nom de famille</Form.Label>
                     <Form.Control
                       type="text"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      placeholder="Enter your last name"
+                      placeholder="Entrer votre Nom de famille"
                       required
                     />
                   </Form.Group>
                   <Form.Group controlId="formFirstName" className="mb-3">
-                    <Form.Label>First Name</Form.Label>
+                    <Form.Label>Prénom</Form.Label>
                     <Form.Control
                       type="text"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      placeholder="Enter your first name"
+                      placeholder="Entrer votre Prénom"
                       required
                     />
                   </Form.Group>
                   <Form.Group className="mb-3">
-                    <Form.Label>Select Role</Form.Label>
+                    <Form.Label>Etes vous tatoueur ?</Form.Label>
                     <Form.Check
                       type="radio"
                       name="role"
-                      label="User"
+                      label="Non"
                       value="user"
                       checked={formData.role === "user"}
                       onChange={handleInputChange}
@@ -127,7 +127,7 @@ const Home = () => {
                     <Form.Check
                       type="radio"
                       name="role"
-                      label="Tattoo Artist"
+                      label="Oui"
                       value="tattoo"
                       onChange={handleInputChange}
                       className="ms-2"
@@ -142,18 +142,18 @@ const Home = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter your email"
+                  placeholder="Entrer votre email"
                   required
                 />
               </Form.Group>
               <Form.Group controlId="formPassword" className="mb-3">
-                <Form.Label>Password</Form.Label>
+                <Form.Label>Mot de passe</Form.Label>
                 <Form.Control
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  placeholder="Password"
+                  placeholder="Mot de passe"
                   required
                 />
               </Form.Group>

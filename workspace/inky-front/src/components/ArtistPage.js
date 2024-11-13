@@ -7,7 +7,7 @@ import PortfolioUploadForm from "./PortfolioUploadForm";
 
 const ArtistPage = () => {
   const { userUid } = useParams();
-  const { currentUser, authLoading } = useAuth(); // Access authLoading from useAuth
+  const { currentUser, authLoading } = useAuth();
   const [artistData, setArtistData] = useState(null);
   const [portfolios, setPortfolios] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -15,7 +15,7 @@ const ArtistPage = () => {
   const isOwner = currentUser && currentUser.uid === userUid;
 
   useEffect(() => {
-    if (authLoading) return; // Wait until authentication is resolved
+    if (authLoading) return; // Attendre que l'authentification soit résolue
 
     const fetchArtistData = async () => {
       try {
@@ -62,33 +62,6 @@ const ArtistPage = () => {
     }
   }, [userUid, currentUser, authLoading]);
 
-  const handlePortfolioUpload = async ({ title, description, mainImage }) => {
-    try {
-      const formData = new FormData();
-      formData.append("artistUid", userUid);
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("mainImage", mainImage);
-
-      const token = await currentUser.getIdToken();
-      console.log("Uploading portfolio with title:", title);
-      const response = await fetch(`http://localhost:5000/api/portfolios`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to upload portfolio");
-
-      const newPortfolio = await response.json();
-      console.log("New portfolio uploaded:", newPortfolio);
-      setPortfolios((prev) => [...prev, newPortfolio]);
-    } catch (error) {
-      console.error("Error uploading portfolio:", error);
-      setErrorMessage("Failed to upload portfolio. Please try again.");
-    }
-  };
-
   if (authLoading || loading) {
     return (
       <Container className="mt-5 text-center">
@@ -116,46 +89,56 @@ const ArtistPage = () => {
           <Row>
             <Col md={6} className="mb-3">
               <Card.Text>
-                <strong>Description:</strong> {artistData.description || "No description available"}
+                <strong>Description :</strong> {artistData.description || "Aucune description disponible"}
               </Card.Text>
               <Card.Text>
                 <FaMapMarkerAlt className="me-2 text-secondary" />
-                <strong>City:</strong> {artistData.city || "No city listed"}
+                <strong>Ville :</strong> {artistData.city || "Ville non renseignée"}
               </Card.Text>
             </Col>
             <Col md={6} className="mb-3">
               <Card.Text>
                 <FaPhone className="me-2 text-secondary" />
-                <strong>Phone:</strong> {artistData.phone || "No phone number"}
+                <strong>Téléphone :</strong> {artistData.phone || "Numéro non renseigné"}
               </Card.Text>
               <Card.Text>
                 <FaInstagram className="me-2 text-secondary" />
-                <strong>Instagram:</strong>{" "}
+                <strong>Instagram :</strong>{" "}
                 {artistData.instagram_link ? (
                   <a href={artistData.instagram_link} target="_blank" rel="noopener noreferrer">
                     {artistData.instagram_link}
                   </a>
-                ) : "N/A"}
+                ) : (
+                  "N/A"
+                )}
               </Card.Text>
               <Card.Text>
                 <FaFacebook className="me-2 text-secondary" />
-                <strong>Facebook:</strong>{" "}
+                <strong>Facebook :</strong>{" "}
                 {artistData.facebook_link ? (
                   <a href={artistData.facebook_link} target="_blank" rel="noopener noreferrer">
                     {artistData.facebook_link}
                   </a>
-                ) : "N/A"}
+                ) : (
+                  "N/A"
+                )}
               </Card.Text>
             </Col>
           </Row>
         </Card.Body>
       </Card>
 
-      {/* Portfolio Section */}
+      {/* Section Portfolio */}
       <Container className="mt-4">
         <h3 className="text-center mb-3">Portfolio</h3>
 
-        {isOwner && <PortfolioUploadForm onUpload={handlePortfolioUpload} />}
+        {isOwner && (
+          <PortfolioUploadForm
+            onPortfolioUploaded={(newPortfolio) => {
+              setPortfolios((prev) => [...prev, newPortfolio]);
+            }}
+          />
+        )}
 
         <Row className="mt-4">
           {portfolios.length > 0 ? (
@@ -163,13 +146,17 @@ const ArtistPage = () => {
               <Col key={portfolio.id} md={4} className="mb-3">
                 <Link to={`/portfolio/${portfolio.id}`} className="text-decoration-none">
                   <Card className="portfolio-card">
-                    <Card.Img variant="top" src={portfolio.main_image_url} style={{ borderRadius: "8px" }} />
+                    <Card.Img
+                      variant="top"
+                      src={portfolio.main_image_url}
+                      style={{ borderRadius: "8px" }}
+                    />
                   </Card>
                 </Link>
               </Col>
             ))
           ) : (
-            <p className="text-center">No portfolios uploaded yet.</p>
+            <p className="text-center">Aucun portfolio téléchargé pour le moment.</p>
           )}
         </Row>
       </Container>
