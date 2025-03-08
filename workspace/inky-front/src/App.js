@@ -8,6 +8,7 @@ import ArtistListPage from "./components/ArtistListPage";
 import Layout from "./components/Layout";
 import PortfolioPage from "./components/PortfolioPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import EditProfile from "./components/EditProfile";
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
-            
+
             <Route
               path="/artist/:userUid"
               element={<ProtectedRoute component={ArtistPage} />}
@@ -27,6 +28,7 @@ function App() {
               path="/portfolio/:portfolioId"
               element={<ProtectedRoute component={PortfolioPage} />}
             />
+            <Route path="/profile" element={<EditProfile />} />
             {/* Other routes can be added here */}
           </Routes>
         </Layout>

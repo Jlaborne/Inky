@@ -1,8 +1,6 @@
 const pool = require("../db/pool");
 const User = require("../models/user");
 
-const { v4: uuidv4 } = require("uuid");
-
 // Get all users
 const getUsers = async () => {
   try {
@@ -20,79 +18,80 @@ const getUsers = async () => {
       );
     });
   } catch (error) {
-    console.log(`getUsers error: ${error}`);
+    console.error(`getUsers error: ${error}`);
     throw error;
   }
 };
 
+// Get user by UID
 const getUserById = async (uid) => {
   try {
-    const resultQuery = await pool.query("SELECT * FROM users WHERE uid = $1", [
-      uid,
-    ]);
+    const resultQuery = await pool.query(
+      "SELECT uid, last_name, first_name, email, role FROM users WHERE uid = $1",
+      [uid]
+    );
     const result = resultQuery.rows[0];
 
-    // Check if result is undefined
     if (!result) {
       throw new Error(`User with UID ${uid} not found.`);
     }
 
-    return {
-      uid: result.uid,
-      lastName: result.last_name,
-      email: result.email,
-      role: result.role, // Make sure you have a 'role' field in your database
-    };
+    return result;
   } catch (error) {
-    console.log(`getUserById error: ${error}`);
+    console.error(`getUserById error: ${error}`);
     throw error;
   }
 };
 
-// Create a new user
+// Create a new user (Ensure password hashing before storing)
 const createUser = async (user) => {
   try {
-    //const userId = uuidv4();
+    console.log("Creating user with UID: ", user.uid);
     const resultQuery = await pool.query(
-      "INSERT INTO users (uid, last_name, first_name, email, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING uid",
-      [
-        user.uid,
-        user.lastName,
-        user.firstName,
-        user.email,
-        user.password,
-        user.role,
-      ]
+      "INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid",
+      [user.uid, user.lastName, user.firstName, user.email, user.role]
     );
-    user.id = resultQuery.rows[0].uid;
-    return user;
+    return resultQuery.rows[0];
   } catch (error) {
-    console.log(`Queries : createUser error: ${error}`);
+    console.error(`createUser error: ${error}`);
     throw error;
   }
 };
 
-// Update an existing user
-const updateUser = async (user) => {
+// Update user details (with email change validation)
+const updateUser = async (uid, updates) => {
   try {
-    await pool.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [
-      user.last_name,
-      user.email,
-      user.id,
-    ]);
-    return user;
+    // Prevent email hijacking by requiring re-authentication (handled on the frontend)
+    const existingUser = await getUserById(uid);
+    if (!existingUser) {
+      throw new Error("User not found.");
+    }
+
+    const result = await pool.query(
+      "UPDATE users SET last_name = $1, first_name = $2, email = $3 WHERE uid = $4 RETURNING *",
+      [updates.lastName, updates.firstName, updates.email, uid]
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error("User update failed.");
+    }
+
+    return result.rows[0];
   } catch (error) {
-    console.log(`updateUser error: ${error}`);
+    console.error(`updateUser error: ${error}`);
     throw error;
   }
 };
 
-// Delete a user
-const deleteUser = async (id) => {
+// Delete a user (Fix: Use UID instead of ID)
+const deleteUser = async (uid) => {
   try {
-    await pool.query("DELETE FROM users WHERE id = $1", [id]);
+    const result = await pool.query("DELETE FROM users WHERE uid = $1", [uid]);
+    if (result.rowCount === 0) {
+      throw new Error("User deletion failed. No user found.");
+    }
   } catch (error) {
-    console.log(`deleteUser error: ${error}`);
+    console.error(`deleteUser error: ${error}`);
     throw error;
   }
 };

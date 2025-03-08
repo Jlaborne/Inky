@@ -21,14 +21,17 @@ const CreateArtistPage = () => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUserUid(user.uid);
-        
+
         // Check if the artist profile already exists
         const token = await auth.currentUser.getIdToken();
-        const response = await fetch(`http://localhost:5000/api/artists/${user.uid}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `http://localhost:5000/api/artists/${user.uid}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (response.ok) {
           // If artist exists, redirect to their profile page
@@ -56,6 +59,7 @@ const CreateArtistPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
     if (!userUid) {
       setErrorMessage("User UID not available. Please log in again.");
       return;
@@ -73,22 +77,18 @@ const CreateArtistPage = () => {
       });
 
       const data = await response.json();
-      if (response.ok) {
-        setSuccessMessage("Tattoo artist profile created successfully!");
-        setArtistData({
-          title: "",
-          phone: "",
-          description: "",
-          city: "",
-          instagram_link: "",
-          facebook_link: "",
-        });
-
-        // Redirect to the artist page after successful creation
-        navigate(`/artist/${userUid}`);
-      } else {
-        setErrorMessage(data.message || "Failed to create profile.");
+      if (!response.ok) {
+        if (data.errors) {
+          // Display validation errors clearly
+          setErrorMessage(data.errors.map((err) => err.msg).join(", "));
+        } else {
+          setErrorMessage(data.message || "Failed to create profile.");
+        }
+        return;
       }
+
+      setSuccessMessage("Tattoo artist profile created successfully!");
+      navigate(`/artist/${userUid}`);
     } catch (error) {
       setErrorMessage("An error occurred. Please try again.");
       console.error("Error creating artist profile:", error);
@@ -97,29 +97,29 @@ const CreateArtistPage = () => {
 
   return (
     <Container className="mt-5">
-      <h2>Create Tattoo Artist Profile</h2>
+      <h2>Création de votre Profil</h2>
       {successMessage && <Alert variant="success">{successMessage}</Alert>}
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       <Form onSubmit={handleSubmit}>
         <Form.Group controlId="formTitle">
-          <Form.Label>Title</Form.Label>
+          <Form.Label>Titre</Form.Label>
           <Form.Control
             type="text"
             name="title"
             value={artistData.title}
             onChange={handleInputChange}
-            placeholder="Enter your title"
+            placeholder="Entrer votre titre"
             required
           />
         </Form.Group>
         <Form.Group controlId="formPhone">
-          <Form.Label>Phone Number</Form.Label>
+          <Form.Label>Numéro de Téléphone</Form.Label>
           <Form.Control
             type="text"
             name="phone"
             value={artistData.phone}
             onChange={handleInputChange}
-            placeholder="Enter your phone number"
+            placeholder="Entrer votre numéro de téléphone"
             required
           />
         </Form.Group>
@@ -130,43 +130,43 @@ const CreateArtistPage = () => {
             name="description"
             value={artistData.description}
             onChange={handleInputChange}
-            placeholder="Enter a description"
+            placeholder="Entrer votre description"
             required
           />
         </Form.Group>
         <Form.Group controlId="formCity">
-          <Form.Label>City</Form.Label>
+          <Form.Label>Ville</Form.Label>
           <Form.Control
             type="text"
             name="city"
             value={artistData.city}
             onChange={handleInputChange}
-            placeholder="Enter your city"
+            placeholder="Entrer votre ville"
             required
           />
         </Form.Group>
         <Form.Group controlId="formInstagramLink">
-          <Form.Label>Instagram Link</Form.Label>
+          <Form.Label>Lien Instagram</Form.Label>
           <Form.Control
             type="text"
             name="instagram_link"
             value={artistData.instagram_link}
             onChange={handleInputChange}
-            placeholder="Enter your Instagram link"
+            placeholder="Entrer votre lien Instagram"
           />
         </Form.Group>
         <Form.Group controlId="formFacebookLink">
-          <Form.Label>Facebook Link</Form.Label>
+          <Form.Label>Lien Facebook</Form.Label>
           <Form.Control
             type="text"
             name="facebook_link"
             value={artistData.facebook_link}
             onChange={handleInputChange}
-            placeholder="Enter your Facebook link"
+            placeholder="Entre votre lien Facebook"
           />
         </Form.Group>
         <Button variant="success" type="submit" className="w-100">
-          Create Profile
+          Créer le profil
         </Button>
       </Form>
     </Container>

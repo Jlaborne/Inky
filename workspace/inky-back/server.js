@@ -1,11 +1,11 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require('path');
+const path = require("path");
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
 const tattooArtistRoutes = require("./src/routes/tattooArtistsRoutes");
-const authenticateToken = require("./middleware/authenticateToken");
+const authenticateToken = require("./src/middleware/authenticateToken");
 const portfolioRoutes = require("./src/routes/portfolioRoutes");
 
 const app = express();
@@ -33,6 +33,10 @@ app.get("/protected", authenticateToken, (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

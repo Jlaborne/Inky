@@ -1,6 +1,12 @@
 const pool = require("../db/pool");
+//check if used
 
-const insertPortfolioImage = async ({ artistId, imageUrl, description, available }) => {
+const insertPortfolioImage = async ({
+  artistId,
+  imageUrl,
+  description,
+  available,
+}) => {
   const query = `
     INSERT INTO portfolio_images (artist_id, image_url, description, available, created_at)
     VALUES ($1, $2, $3, $4, NOW())
