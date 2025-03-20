@@ -1,27 +1,16 @@
 import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
-import { signOutUser, useAuth } from "../firebase/auth";
+import { signOutUser } from "../firebase/auth";
+import { useAuth } from "../firebase/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
 
 const Header = () => {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
 
-  const handleLogout = async () => {
-    try {
-      await signOutUser();
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-
   const handleInkyClick = () => {
-    if (currentUser) {
-      navigate("/artists");
-    } else {
-      navigate("/");
-    }
+    console.log("Inky button click");
+    navigate("/artists");
   };
 
   return (
@@ -54,7 +43,7 @@ const Header = () => {
                   Mon Profil
                 </Link>
               )}
-              <Nav.Link onClick={handleLogout}>Déconnexion</Nav.Link>
+              <button onClick={signOutUser}>Déconnexion</button>
             </>
           ) : (
             <Link to="/" className="nav-link">

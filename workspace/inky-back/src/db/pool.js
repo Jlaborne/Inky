@@ -1,15 +1,19 @@
 const { Pool } = require("pg");
-require("dotenv").config();
+const dotenv = require("dotenv");
 
-// Use a different DB for tests
-const isTestEnv = process.env.NODE_ENV === "test";
+// Load environment variables from .env.test for testing
+if (process.env.NODE_ENV === "test") {
+  dotenv.config({ path: ".env.test" });
+} else {
+  dotenv.config();
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
-  database: isTestEnv ? process.env.DB_TEST_NAME : process.env.DB_DATABASE,
+  database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
 
-module.exports = pool;
+module.exports = { pool };

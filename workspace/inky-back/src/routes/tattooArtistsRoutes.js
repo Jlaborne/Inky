@@ -1,6 +1,7 @@
 const express = require("express");
 const { check, validationResult } = require("express-validator");
 const tattooArtistController = require("../controllers/tattooArtistController");
+const userController = require("../controllers/userController");
 const authenticateToken = require("../middleware/authenticateToken");
 
 const router = express.Router();
@@ -25,9 +26,9 @@ router.get("/artists", tattooArtistController.getTattooArtists);
 router.get("/artists/:userUid", tattooArtistController.getTattooArtistByUserUid);
 
 // Update a tattoo artist profile
-router.put("/artists/:userUid", artistValidationRules, authenticateToken, tattooArtistController.updateTattooArtist);
+router.patch("/artists/:userUid", artistValidationRules, authenticateToken, tattooArtistController.updateTattooArtist);
 
 // Delete a tattoo artist
-router.delete("/artists/:userUid", tattooArtistController.deleteTattooArtist);
+router.delete("/artists/:userUid", authenticateToken, tattooArtistController.deleteTattooArtist);
 
 module.exports = router;

@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { signIn } from "../firebase/auth"; // Adjust the path if necessary
+import { useAuth } from "../firebase/AuthProvider";
+import { signIn } from "../firebase/auth";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { currentUser, authLoading, userRole } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     lastName: "",
@@ -13,15 +15,21 @@ const Home = () => {
     password: "",
     role: "user",
   });
-  const [feedbackMessage, setFeedbackMessage] = useState({ type: "", text: "" });
+  const [feedbackMessage, setFeedbackMessage] = useState({
+    type: "",
+    text: "",
+  });
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      navigate("/artists");
+    }
+  }, [currentUser, authLoading, userRole, navigate]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   // Submit handler for both login and register actions
@@ -42,21 +50,37 @@ const Home = () => {
           body: JSON.stringify(formData),
         });
         if (!response.ok) throw new Error("Registration failed.");
-        setFeedbackMessage({ type: "success", text: "User registered successfully!" });
-        setFormData({ lastName: "", firstName: "", email: "", password: "", role: "user" });
+        setFeedbackMessage({
+          type: "success",
+          text: "User registered successfully!",
+        });
+        setFormData({
+          lastName: "",
+          firstName: "",
+          email: "",
+          password: "",
+          role: "user",
+        });
       }
     } catch (error) {
-      setFeedbackMessage({ type: "danger", text: error.message || "An error occurred. Please try again." });
+      setFeedbackMessage({
+        type: "danger",
+        text: error.message || "An error occurred. Please try again.",
+      });
     }
   };
 
   // Fetch user role function
   const fetchUserRole = async (uid) => {
+    const cachedRole = localStorage.getItem(`user_role_${uid}`);
+    if (cachedRole) return cachedRole;
+
     const response = await fetch(`http://localhost:5000/api/users/${uid}`);
     if (!response.ok) {
       throw new Error("Failed to fetch user role");
     }
     const data = await response.json();
+    localStorage.setItem(`user_role_${uid}`, data.role);
     return data.role;
   };
 
@@ -68,97 +92,48 @@ const Home = () => {
       </header>
 
       <div className="text-center mb-4">
-        <Button
-          variant="outline-primary"
-          onClick={() => setIsLogin(true)}
-          className={`me-2 ${isLogin ? "active" : ""}`}
-        >
+        <Button variant={isLogin ? "primary" : "outline-primary"} onClick={() => setIsLogin(true)} className={`me-2 ${isLogin ? "active" : ""}`}>
           Se connecter
         </Button>
-        <Button variant="outline-secondary" onClick={() => setIsLogin(false)}>
+        <Button variant={!isLogin ? "primary" : "outline-secondary"} onClick={() => setIsLogin(false)} className={!isLogin ? "active" : ""}>
           Créer un compte
         </Button>
       </div>
 
-      {feedbackMessage.text && (
-        <Alert variant={feedbackMessage.type}>{feedbackMessage.text}</Alert>
-      )}
+      {feedbackMessage.text && <Alert variant={feedbackMessage.type}>{feedbackMessage.text}</Alert>}
 
       <Row className="justify-content-center">
         <Col md={6}>
           <Card className="p-4 shadow-sm rounded">
-            <h2 className="text-center mb-3">{isLogin ? "Login" : "Register"}</h2>
+            <h2 className="text-center mb-3">{isLogin ? "Connexion" : "Créer un compte"}</h2>
             <Form onSubmit={handleSubmit}>
               {!isLogin && (
                 <>
                   <Form.Group controlId="formLastName" className="mb-3">
                     <Form.Label>Nom de famille</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      placeholder="Entrer votre Nom de famille"
-                      required
-                    />
+                    <Form.Control type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Entrer votre Nom de famille" required />
                   </Form.Group>
                   <Form.Group controlId="formFirstName" className="mb-3">
                     <Form.Label>Prénom</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      placeholder="Entrer votre Prénom"
-                      required
-                    />
+                    <Form.Control type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="Entrer votre Prénom" required />
                   </Form.Group>
                   <Form.Group className="mb-3">
                     <Form.Label>Etes vous tatoueur ?</Form.Label>
-                    <Form.Check
-                      type="radio"
-                      name="role"
-                      label="Non"
-                      value="user"
-                      checked={formData.role === "user"}
-                      onChange={handleInputChange}
-                      className="ms-2"
-                    />
-                    <Form.Check
-                      type="radio"
-                      name="role"
-                      label="Oui"
-                      value="tattoo"
-                      onChange={handleInputChange}
-                      className="ms-2"
-                    />
+                    <Form.Check type="radio" name="role" label="Non" value="user" checked={formData.role === "user"} onChange={handleInputChange} className="ms-2" />
+                    <Form.Check type="radio" name="role" label="Oui" value="tattoo" onChange={handleInputChange} className="ms-2" />
                   </Form.Group>
                 </>
               )}
               <Form.Group controlId="formEmail" className="mb-3">
                 <Form.Label>Email</Form.Label>
-                <Form.Control
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="Entrer votre email"
-                  required
-                />
+                <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Entrer votre email" required />
               </Form.Group>
               <Form.Group controlId="formPassword" className="mb-3">
                 <Form.Label>Mot de passe</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Mot de passe"
-                  required
-                />
+                <Form.Control type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Mot de passe" required />
               </Form.Group>
               <Button variant="success" type="submit" className="w-100">
-                {isLogin ? "Login" : "Register"}
+                {isLogin ? "Connexion" : "Créer un compte"}
               </Button>
             </Form>
           </Card>

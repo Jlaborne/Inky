@@ -6,6 +6,7 @@ const {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } = require("firebase/auth");
+const admin = require("firebase-admin");
 
 // Register user (Firebase + PostgreSQL)
 const registerUser = async (req, res) => {
@@ -50,17 +51,22 @@ const registerUser = async (req, res) => {
   } catch (error) {
     console.error("Error during registration:", error);
 
+    // Check for specific Firebase error codes
+    if (error.code === "auth/email-already-in-use") {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
     // Step 4: Rollback Firebase User if PostgreSQL Fails
     if (userCredential) {
       await userCredential.user.delete();
       console.log("Rolled back Firebase user:", userCredential.user.uid);
     }
 
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// ✅ Get all users
+// Get all users
 const getUsers = async (req, res) => {
   console.log("Fetching all users...");
   try {
@@ -72,7 +78,7 @@ const getUsers = async (req, res) => {
   }
 };
 
-// ✅ Get user by ID
+// Get user by ID
 const getUserById = async (req, res) => {
   console.log("Fetching user with UID:", req.params.uid);
   try {
@@ -90,13 +96,21 @@ const getUserById = async (req, res) => {
   }
 };
 
-// ✅ Update user profile
+// Update user profile
 const updateUser = async (req, res) => {
-  console.log("Updating user:", req.params.uid, "Request Body:", req.body);
+  const uid = req.params.uid;
+  const { lastName, firstName } = req.body;
 
-  const { uid } = req.params;
-  const { lastName, firstName, email, role } = req.body;
+  // Debug log to verify UID and request body
+  console.log("Updating user with UID:", uid);
+  console.log("Request Body:", req.body);
 
+  // Ensure UID is a string
+  if (typeof uid !== "string") {
+    return res.status(400).json({ error: "Invalid UID format." });
+  }
+
+  // Check if the authenticated user is authorized to update the profile
   if (!req.user || req.user.uid !== uid) {
     return res
       .status(403)
@@ -104,19 +118,17 @@ const updateUser = async (req, res) => {
   }
 
   try {
-    const updatedUser = { uid, lastName, firstName, email, role };
+    const updatedUser = { uid, lastName, firstName };
     await userQueries.updateUser(updatedUser);
     res.status(200).json({ message: "Profile updated successfully." });
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error("Error updating user:", error.message);
     res.status(500).json({ error: "Error updating profile." });
   }
 };
 
-// ✅ Delete a user
+// Delete a user
 const deleteUser = async (req, res) => {
-  console.log("Deleting user:", req.params.uid);
-
   const { uid } = req.params;
 
   if (!req.user || req.user.uid !== uid) {
@@ -124,15 +136,27 @@ const deleteUser = async (req, res) => {
   }
 
   try {
-    await userQueries.deleteUser(uid);
-    res.status(200).json({ message: "User deleted successfully" });
+    // Step 1: Delete user from Firebase Authentication
+    await admin.auth().deleteUser(uid);
+    console.log(` Successfully deleted Firebase user: ${uid}`);
+
+    // Step 2: Delete user from PostgreSQL database
+    const result = await userQueries.deleteUser(uid);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "User not found in database." });
+    }
+
+    console.log(`Successfully deleted PostgreSQL user: ${uid}`);
+
+    res.status(200).json({ message: "User deleted successfully." });
   } catch (error) {
-    console.error("Error deleting user:", error);
-    res.status(500).send("Error deleting user");
+    console.error("Error deleting user:", error.message);
+    res.status(500).json({ error: "Failed to delete user." });
   }
 };
 
-// ✅ Login user
+// Login user
 const loginUser = async (req, res) => {
   console.log("Login request:", req.body);
 

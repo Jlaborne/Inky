@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useAuth } from "../firebase/auth";
-import { Container, Card, Row, Col, Alert, Spinner } from "react-bootstrap";
+import { useAuth } from "../firebase/AuthProvider";
+import { Container, Card, Row, Col, Alert, Spinner, Button } from "react-bootstrap";
 import { FaInstagram, FaFacebook, FaPhone, FaMapMarkerAlt } from "react-icons/fa";
 import PortfolioUploadForm from "./PortfolioUploadForm";
+import { useNavigate } from "react-router-dom";
 
 const ArtistPage = () => {
+  const navigate = useNavigate();
   const { userUid } = useParams();
   const { currentUser, authLoading } = useAuth();
   const [artistData, setArtistData] = useState(null);
@@ -13,6 +15,9 @@ const ArtistPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const isOwner = currentUser && currentUser.uid === userUid;
+  const handleEditClick = () => {
+    navigate(`/edit-artist-profile`);
+  };
 
   useEffect(() => {
     if (authLoading) return; // Attendre que l'authentification soit résolue
@@ -86,6 +91,13 @@ const ArtistPage = () => {
           <Card.Title as="h2" className="text-center mb-4 text-uppercase">
             {artistData.title}
           </Card.Title>
+          {isOwner && (
+            <div className="text-center mb-3">
+              <Button variant="warning" onClick={handleEditClick}>
+                Edit Profile
+              </Button>
+            </div>
+          )}
           <Row>
             <Col md={6} className="mb-3">
               <Card.Text>
@@ -146,11 +158,7 @@ const ArtistPage = () => {
               <Col key={portfolio.id} md={4} className="mb-3">
                 <Link to={`/portfolio/${portfolio.id}`} className="text-decoration-none">
                   <Card className="portfolio-card">
-                    <Card.Img
-                      variant="top"
-                      src={portfolio.main_image_url}
-                      style={{ borderRadius: "8px" }}
-                    />
+                    <Card.Img variant="top" src={portfolio.main_image} style={{ borderRadius: "8px" }} />
                   </Card>
                 </Link>
               </Col>

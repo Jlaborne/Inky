@@ -1,7 +1,13 @@
-require('dotenv').config();
-const { initializeApp } = require('firebase/app');
-const { getAuth } = require('firebase/auth');
-const { getFirestore } = require('firebase/firestore');
+const dotenv = require("dotenv");
+const { initializeApp } = require("firebase/app");
+const { getAuth } = require("firebase/auth");
+
+// Load environment variables from .env.test for testing
+if (process.env.NODE_ENV === "test") {
+  dotenv.config({ path: ".env.test" });
+} else {
+  dotenv.config(); // Load from .env for development or production
+}
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -15,8 +21,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Export the Firebase Auth and Firestore instances
+// Export the Firebase Auth
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-module.exports = { auth, db };
+module.exports = { auth };

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Form, Button, Alert, Spinner } from "react-bootstrap";
-import { useAuth } from "../firebase/auth";
+import { useAuth } from "../firebase/AuthProvider";
 
 const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
   const { currentUser } = useAuth();
@@ -43,7 +43,9 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
       setMainImage(null);
     } catch (error) {
       console.error("Error uploading portfolio:", error);
-      setErrorMessage("Échec du téléchargement du portfolio. Veuillez réessayer.");
+      setErrorMessage(
+        "Échec du téléchargement du portfolio. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
     }
@@ -78,8 +80,16 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
         <Form.Control type="file" onChange={handleFileChange} />
       </Form.Group>
 
-      <Button onClick={handleUpload} disabled={!mainImage || !title || loading} className="mt-3">
-        {loading ? <Spinner as="span" animation="border" size="sm" /> : "Télécharger le Portfolio"}
+      <Button
+        onClick={handleUpload}
+        disabled={!mainImage || !title || loading}
+        className="mt-3"
+      >
+        {loading ? (
+          <Spinner as="span" animation="border" size="sm" />
+        ) : (
+          "Télécharger le Portfolio"
+        )}
       </Button>
     </Form>
   );

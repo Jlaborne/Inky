@@ -7,11 +7,10 @@ const authenticateToken = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
-
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
-    console.log("Decoded token:", decodedToken);
-    req.user = decodedToken; // Attach user data to request
+    req.user = decodedToken;
+    console.log("Authenticated UID:", decodedToken.uid);
     next();
   } catch (error) {
     console.error("Token verification error:", error);

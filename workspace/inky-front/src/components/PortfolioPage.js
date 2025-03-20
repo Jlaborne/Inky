@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useAuth } from "../firebase/auth";
-import { Container, Card, Row, Col, Form, Button, Spinner, Alert } from "react-bootstrap";
+import { useAuth } from "../firebase/AuthProvider";
+import {
+  Container,
+  Card,
+  Row,
+  Col,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
 
 const PortfolioPage = () => {
   const { portfolioId } = useParams();
@@ -14,7 +23,9 @@ const PortfolioPage = () => {
   useEffect(() => {
     const fetchPortfolioDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/portfolios/${portfolioId}`);
+        const response = await fetch(
+          `http://localhost:5000/api/portfolios/${portfolioId}`
+        );
         if (!response.ok) throw new Error("Failed to fetch portfolio details");
 
         const data = await response.json();
@@ -28,7 +39,10 @@ const PortfolioPage = () => {
     fetchPortfolioDetails();
   }, [portfolioId]);
 
-  const isOwner = currentUser && portfolioData && currentUser.uid === portfolioData.artist_uid;
+  const isOwner =
+    currentUser &&
+    portfolioData &&
+    currentUser.uid === portfolioData.artist_uid;
 
   const handleFileChange = (e) => setImageFile(e.target.files[0]);
 
@@ -40,11 +54,14 @@ const PortfolioPage = () => {
 
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/portfolios/${portfolioId}/images`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/portfolios/${portfolioId}/images`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to upload image");
 

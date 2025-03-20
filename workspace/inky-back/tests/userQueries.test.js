@@ -1,5 +1,5 @@
 const userQueries = require("../src/queries/userQueries");
-const pool = require("../src/db/pool");
+const { pool } = require("../src/db/pool");
 
 jest.mock("../src/db/pool"); // Mock the database
 

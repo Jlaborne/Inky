@@ -30,7 +30,7 @@ ALTER SCHEMA public OWNER TO postgres;
 
 --
 -- TOC entry 822 (class 1247 OID 41003)
--- Name: user_role; Type: TYPE; Schema: public; Owner: joshua
+-- Name: user_role; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public.user_role AS ENUM (
@@ -40,7 +40,7 @@ CREATE TYPE public.user_role AS ENUM (
 );
 
 
-ALTER TYPE public.user_role OWNER TO joshua;
+ALTER TYPE public.user_role OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -48,7 +48,7 @@ SET default_table_access_method = heap;
 
 --
 -- TOC entry 209 (class 1259 OID 41016)
--- Name: users; Type: TABLE; Schema: public; Owner: joshua
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.users (
@@ -63,12 +63,12 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO joshua;
+ALTER TABLE public.users OWNER TO postgres;
 
 --
 -- TOC entry 3316 (class 0 OID 41016)
 -- Dependencies: 209
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: joshua
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.users (uid, name, first_name, email, password, role, created_at, updated_at) FROM stdin;
@@ -81,7 +81,7 @@ q5Xe7UtrilWufdmDu0SRbIMBjbF3	John	Doe	useradmin@example.com	password3	admin	2024
 
 --
 -- TOC entry 3174 (class 2606 OID 41026)
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: joshua
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
@@ -90,7 +90,7 @@ ALTER TABLE ONLY public.users
 
 --
 -- TOC entry 3176 (class 2606 OID 41024)
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: joshua
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
