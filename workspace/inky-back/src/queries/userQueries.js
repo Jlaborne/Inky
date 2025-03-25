@@ -33,13 +33,13 @@ const getUserById = async (uid) => {
 
 const createUser = async (user) => {
   try {
-    console.log("🟢 Creating user with UID:", user.uid);
-    console.log("📝 Running query: INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid");
-    console.log("🛠 Query parameters:", [user.uid, user.lastName, user.firstName, user.email, user.role]);
+    console.log("Creating user with UID:", user.uid);
+    console.log("Running query: INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid");
+    console.log("Query parameters:", [user.uid, user.lastName, user.firstName, user.email, user.role]);
 
     const resultQuery = await pool.query("INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid", [user.uid, user.lastName, user.firstName, user.email, user.role]);
 
-    console.log("🔍 Query Result:", resultQuery);
+    console.log("Query Result:", resultQuery);
 
     if (!resultQuery || !resultQuery.rows) {
       throw new Error("Database query returned undefined!");
@@ -47,32 +47,27 @@ const createUser = async (user) => {
 
     return resultQuery.rows[0];
   } catch (error) {
-    console.error("❌ createUser error:", error);
+    console.error("createUser error:", error);
     throw error;
   }
 };
 
 // Update user details (with email change validation)
-const updateUser = async ({ uid, lastName, firstName }) => {
+const updateUser = async ({ uid, lastName, firstName, email }) => {
   const query = `
     UPDATE users
-    SET last_name = $1, first_name = $2, updated_at = NOW()
-    WHERE uid = $3
+    SET
+      last_name = COALESCE($1, last_name),
+      first_name = COALESCE($2, first_name),
+      email = COALESCE($3, email),
+      updated_at = NOW()
+    WHERE uid = $4
     RETURNING *;
   `;
 
-  try {
-    const { rows } = await pool.query(query, [lastName, firstName, uid]);
-
-    if (rows.length === 0) {
-      throw new Error("User not found.");
-    }
-
-    return rows[0];
-  } catch (error) {
-    console.error("updateUser error:", error);
-    throw error;
-  }
+  const values = [lastName || null, firstName || null, email || null, uid];
+  const result = await pool.query(query, values);
+  return result.rows[0];
 };
 
 // Delete a user from PostgreSQL
