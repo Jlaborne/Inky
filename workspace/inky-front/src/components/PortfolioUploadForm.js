@@ -18,7 +18,6 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
     if (!mainImage || !title) return;
     setLoading(true);
     const formData = new FormData();
-    formData.append("artistUid", currentUser.uid);
     formData.append("title", title);
     formData.append("description", description);
     formData.append("mainImage", mainImage);

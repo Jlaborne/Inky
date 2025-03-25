@@ -83,6 +83,10 @@ const PortfolioPage = () => {
     );
   }
 
+  console.log("🔍 currentUser UID:", currentUser?.uid);
+  console.log("🖼 portfolio owner UID:", portfolioData?.artist_uid);
+  console.log("🧾 isOwner:", isOwner);
+
   return (
     <Container className="mt-5">
       {errorMessage && (

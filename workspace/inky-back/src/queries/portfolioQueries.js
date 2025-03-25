@@ -17,30 +17,25 @@ const insertPortfolioImage = async ({ artistId, imageUrl, description, available
   }
 };
 
-const getPortfoliosByArtist = async (artistUid) => {
-  try {
-    console.log("🔍 Fetching UUID for Firebase UID:", artistUid);
+const getPortfoliosByArtist = async (firebaseUid) => {
+  const artistQuery = `
+    SELECT id FROM tattoo_artists 
+    WHERE user_id = (SELECT id FROM users WHERE uid = $1);
+  `;
+  const artistResult = await pool.query(artistQuery, [firebaseUid]);
 
-    // Convert Firebase UID to UUID first
-    const userQuery = `SELECT id FROM users WHERE uid = $1;`;
-    const userResult = await pool.query(userQuery, [artistUid]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error("User not found in database");
-    }
-
-    const artistId = userResult.rows[0].id; // Get the correct UUID
-    console.log("✅ Found artist UUID:", artistId);
-
-    // Now fetch portfolios using the UUID
-    const result = await pool.query("SELECT * FROM portfolios WHERE artist_id = $1", [artistId]);
-
-    console.log("📝 Portfolios fetched:", result.rows);
-    return result.rows;
-  } catch (error) {
-    console.error("❌ Error fetching portfolios:", error);
-    throw error;
+  if (artistResult.rows.length === 0) {
+    throw new Error("Tattoo artist profile not found");
   }
+
+  const artistId = artistResult.rows[0].id;
+
+  const result = await pool.query(
+    `SELECT * FROM portfolios WHERE artist_id = $1`,
+    [artistId]
+  );
+
+  return result.rows;
 };
 
 module.exports = {

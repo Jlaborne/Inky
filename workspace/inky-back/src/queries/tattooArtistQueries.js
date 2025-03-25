@@ -68,10 +68,12 @@ const getTattooArtistByUserUid = async (userUid) => {
     // Check if `userUid` is already a UUID (PostgreSQL UUIDs contain dashes "-")
     if (userUid.includes("-")) {
       console.log("✅ This is already a UUID, using directly.");
-      const resultQuery = await pool.query(
-        "SELECT * FROM tattoo_artists WHERE user_id = $1",
-        [userUid] // Directly use UUID if it's already a UUID
-      );
+      const resultQuery = await pool.query(`
+        SELECT ta.*, u.uid as firebase_uid
+        FROM tattoo_artists ta
+        JOIN users u ON ta.user_id = u.id
+        WHERE ta.user_id = $1
+      `, [userUid]);
       return resultQuery.rows[0];
     }
 
@@ -84,11 +86,16 @@ const getTattooArtistByUserUid = async (userUid) => {
       throw new Error("User not found in database");
     }
 
-    const userId = userResult.rows[0].id; // Get the correct UUID
+    const userId = userResult.rows[0].id;
     console.log("✅ Found UUID:", userId);
 
-    // Now fetch tattoo artist by the UUID
-    const resultQuery = await pool.query("SELECT * FROM tattoo_artists WHERE user_id = $1", [userId]);
+    // Fetch tattoo artist and join to get firebase_uid
+    const resultQuery = await pool.query(`
+      SELECT ta.*, u.uid as firebase_uid
+      FROM tattoo_artists ta
+      JOIN users u ON ta.user_id = u.id
+      WHERE ta.user_id = $1
+    `, [userId]);
 
     return resultQuery.rows[0];
   } catch (error) {
