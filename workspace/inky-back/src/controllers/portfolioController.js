@@ -1,8 +1,7 @@
-const { pool } = require("../db/pool");
-const resolveArtistId = require("../utils/resolveArtistId");
+const { createPortfolio, addImageToPortfolio, getPortfoliosByArtistUid, getPortfolioByIdWithImages, deletePortfolio, deletePortfolioImage } = require("../queries/portfolioQueries");
 
-// ✅ Create a new portfolio
-const createPortfolio = async (req, res) => {
+// Créer un nouveau portfolio
+const createPortfolioController = async (req, res) => {
   const { title, description } = req.body;
   const mainImageFile = req.file;
 
@@ -12,27 +11,16 @@ const createPortfolio = async (req, res) => {
 
   try {
     const firebaseUid = req.user.uid;
-    const artistId = await resolveArtistId(firebaseUid);
-
-    const mainImageUrl = `http://localhost:5000/uploads/${mainImageFile.filename}`;
-
-    console.log("🧩 Résolu artistId pour l'insertion du portfolio:", artistId);
-    
-    const result = await pool.query(
-      `INSERT INTO portfolios (artist_id, title, main_image, description) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [artistId, title, mainImageUrl, description]
-    );
-
-    res.status(201).json(result.rows[0]);
+    const portfolio = await createPortfolio(firebaseUid, title, description, mainImageFile.filename);
+    res.status(201).json(portfolio);
   } catch (error) {
-    console.error("❌ Error creating portfolio:", error.message);
+    console.error("Erreur création portfolio :", error.message);
     res.status(500).json({ error: "Failed to create portfolio" });
   }
 };
 
-// ✅ Add a flash tattoo image to a portfolio
-const addPortfolioImage = async (req, res) => {
+// Ajouter une image à un portfolio
+const addPortfolioImageController = async (req, res) => {
   const { portfolioId } = req.params;
   const imageFile = req.file;
 
@@ -41,78 +29,64 @@ const addPortfolioImage = async (req, res) => {
   }
 
   try {
-    const imageUrl = `http://localhost:5000/uploads/${imageFile.filename}`;
-
-    const result = await pool.query(
-      `INSERT INTO portfolio_images (portfolio_id, image_url, available) 
-       VALUES ($1, $2, true) RETURNING *`,
-      [portfolioId, imageUrl]
-    );
-
-    res.status(201).json(result.rows[0]);
+    const image = await addImageToPortfolio(portfolioId, imageFile.filename);
+    res.status(201).json(image);
   } catch (error) {
-    console.error("❌ Error adding portfolio image:", error.message);
+    console.error("Erreur ajout image :", error.message);
     res.status(500).json({ error: "Failed to add portfolio image" });
   }
 };
 
-// ✅ Get portfolios for artist (from firebase UID in URL)
-const getPortfoliosByArtist = async (req, res) => {
+// Récupérer tous les portfolios d'un artiste (via Firebase UID)
+const getPortfoliosByArtistController = async (req, res) => {
   try {
     const firebaseUid = req.params.artistUid;
-    const artistId = await resolveArtistId(firebaseUid);
-
-    const result = await pool.query(
-      "SELECT * FROM portfolios WHERE artist_id = $1",
-      [artistId]
-    );
-
-    res.status(200).json(result.rows);
+    const portfolios = await getPortfoliosByArtistUid(firebaseUid);
+    res.status(200).json(portfolios);
   } catch (error) {
-    console.error("❌ Error fetching portfolios:", error.message);
+    console.error("Erreur récupération portfolios :", error.message);
     res.status(500).json({ error: "Failed to fetch portfolios." });
   }
 };
 
-// ✅ Get portfolio + all flash images
-const getPortfolioDetails = async (req, res) => {
-  const { portfolioId } = req.params;
-
+// Détails d’un portfolio + images
+const getPortfolioDetailsController = async (req, res) => {
   try {
-    const portfolioResult = await pool.query(
-      `SELECT 
-         p.id, p.title, p.description, p.main_image, p.created_at, u.uid AS artist_uid
-       FROM portfolios p
-       JOIN tattoo_artists t ON p.artist_id = t.id
-       JOIN users u ON t.user_id = u.id
-       WHERE p.id = $1`,
-      [portfolioId]
-    );
-
-    if (portfolioResult.rows.length === 0) {
-      return res.status(404).json({ error: "Portfolio not found" });
-    }
-
-    const imagesResult = await pool.query(
-      `SELECT * FROM portfolio_images 
-       WHERE portfolio_id = $1 
-       ORDER BY created_at DESC`,
-      [portfolioId]
-    );
-
-    res.status(200).json({
-      ...portfolioResult.rows[0],
-      images: imagesResult.rows,
-    });
+    const portfolio = await getPortfolioByIdWithImages(req.params.portfolioId);
+    res.status(200).json(portfolio);
   } catch (error) {
-    console.error("❌ Error fetching portfolio details:", error.message);
+    console.error("Erreur récupération portfolio :", error.message);
     res.status(500).json({ error: "Failed to fetch portfolio details." });
   }
 };
 
+const deletePortfolioController = async (req, res) => {
+  try {
+    const portfolioId = req.params.portfolioId;
+    const deleted = await deletePortfolio(portfolioId);
+    res.status(200).json({ message: "Portfolio supprimé", deleted });
+  } catch (error) {
+    console.error("Erreur suppression portfolio :", error.message);
+    res.status(500).json({ error: "Failed to delete portfolio" });
+  }
+};
+
+const deletePortfolioImageController = async (req, res) => {
+  try {
+    const imageId = req.params.imageId;
+    const deleted = await deletePortfolioImage(imageId);
+    res.status(200).json({ message: "Image supprimée", deleted });
+  } catch (error) {
+    console.error("Erreur suppression image :", error.message);
+    res.status(500).json({ error: "Failed to delete image" });
+  }
+};
+
 module.exports = {
-  createPortfolio,
-  addPortfolioImage,
-  getPortfoliosByArtist,
-  getPortfolioDetails,
+  createPortfolio: createPortfolioController,
+  addPortfolioImage: addPortfolioImageController,
+  getPortfoliosByArtist: getPortfoliosByArtistController,
+  getPortfolioDetails: getPortfolioDetailsController,
+  deletePortfolio: deletePortfolioController,
+  deletePortfolioImage: deletePortfolioImageController,
 };

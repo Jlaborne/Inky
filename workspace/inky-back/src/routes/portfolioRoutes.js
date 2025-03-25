@@ -16,4 +16,10 @@ router.get("/artists/:artistUid/portfolios", authenticateToken, portfolioControl
 // Route to fetch portfolio details
 router.get("/portfolios/:portfolioId", portfolioController.getPortfolioDetails);
 
+// Route to delete a porfolio
+router.delete("/portfolios/:portfolioId", authenticateToken, portfolioController.deletePortfolio);
+
+// Route to delete a porfolio image
+router.delete("/portfolio-images/:imageId", authenticateToken, portfolioController.deletePortfolioImage);
+
 module.exports = router;

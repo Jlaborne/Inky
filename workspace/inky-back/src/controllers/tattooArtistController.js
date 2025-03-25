@@ -4,41 +4,6 @@ const tattooArtistQueries = require("../queries/tattooArtistQueries");
 const userQueries = require("../queries/userQueries");
 
 // Create a new tattoo artist profile
-/*
-const createTattooArtist = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { title, phone, instagram_link, facebook_link, description, city } = req.body;
-  const userUid = req.user.uid;
-
-  try {
-    const user = await admin.auth().getUser(userUid);
-    const newTattooArtist = {
-      user_id: userUid,
-      title,
-      phone,
-      email: user.email,
-      instagram_link: instagram_link || null,
-      facebook_link: facebook_link || null,
-      description: description || null,
-      city: city || null,
-    };
-
-    const result = await tattooArtistQueries.createTattooArtist(newTattooArtist);
-    res.status(201).json({
-      message: "Tattoo artist profile created successfully!",
-      userUid: result.user_id,
-    });
-  } catch (error) {
-    console.error("Error creating tattoo artist:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
-*/
-// Create a new tattoo artist profile
 const createTattooArtist = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -93,11 +58,8 @@ const getTattooArtists = async (req, res) => {
 const getTattooArtistByUserUid = async (req, res) => {
   try {
     const artist = await tattooArtistQueries.getTattooArtistByUserUid(req.params.userUid);
-    if (!artist) return res.status(404).json({ message: "Tattoo artist not found" });
-
-    res.status(200).json({ ...artist }); // Send artist object directly
+    res.status(200).json(artist);
   } catch (error) {
-    console.error("Error fetching tattoo artist:", error);
     res.status(500).json({ error: error.message });
   }
 };

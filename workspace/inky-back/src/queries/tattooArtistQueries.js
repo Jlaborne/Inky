@@ -1,199 +1,129 @@
 const { pool } = require("../db/pool");
-const TattooArtistPage = require("../models/tattooArtist");
+const TattooArtist = require("../models/tattooArtist");
 
-// Create a new tattoo artist profile
-/*
-const createTattooArtist = async (tattooArtist) => {
-  const resultQuery = await pool.query(
-    `INSERT INTO tattoo_artists (user_id, title, phone, instagram_link, facebook_link, city, description)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [tattooArtist.user_id, tattooArtist.title, tattooArtist.phone, tattooArtist.instagram_link, tattooArtist.facebook_link, tattooArtist.city, tattooArtist.description]
-  );
-  console.log("Inserted tattoo artist:", resultQuery.rows[0]);
-  return resultQuery.rows[0];
-};
-*/
+// Créer un nouveau profil de tatoueur à partir du Firebase UID
 const createTattooArtist = async (uid, title, phone, city, description, instagramLink, facebookLink) => {
-  const userQuery = `SELECT id FROM users WHERE uid = $1;`;
-
   try {
-    console.log("🔍 Checking if user exists with UID:", uid);
+    // Récupère l'UUID (id) de l'utilisateur depuis son Firebase UID
+    const userQuery = `SELECT id FROM users WHERE uid = $1;`;
     const userResult = await pool.query(userQuery, [uid]);
 
     if (userResult.rows.length === 0) {
-      throw new Error("User not found in database");
-    }
-
-    const userId = userResult.rows[0].id; // Get the UUID
-    console.log("✅ User found, inserting tattoo artist for ID:", userId);
-
-    // 🔥 Debugging: Log the values before inserting
-    console.log("📝 Tattoo artist data:", { userId, title, phone, city, description, instagramLink, facebookLink });
-
-    const query = `
-          INSERT INTO tattoo_artists (user_id, title, phone, city, description, instagram_link, facebook_link)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING *;
-      `;
-
-    const values = [userId, title, phone, city, description, instagramLink, facebookLink];
-
-    console.log("🛠 Executing INSERT with values:", values);
-
-    const result = await pool.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    console.error("❌ Error creating tattoo artist:", error);
-    throw error;
-  }
-};
-
-// Get all tattoo artists with optional filtering
-const getTattooArtists = async ({ city, title }) => {
-  const query = `
-    SELECT * FROM tattoo_artists
-    WHERE ($1::text IS NULL OR city ILIKE $1)
-    AND ($2::text IS NULL OR title ILIKE $2)
-  `;
-  const values = [city ? `%${city}%` : null, title ? `%${title}%` : null];
-  const result = await pool.query(query, values);
-  console.log("Fetched tattoo artists:", result.rows);
-  return result.rows;
-};
-
-const getTattooArtistByUserUid = async (userUid) => {
-  try {
-    console.log("🔍 Received userUid for lookup:", userUid);
-
-    // Check if `userUid` is already a UUID (PostgreSQL UUIDs contain dashes "-")
-    if (userUid.includes("-")) {
-      console.log("✅ This is already a UUID, using directly.");
-      const resultQuery = await pool.query(`
-        SELECT ta.*, u.uid as firebase_uid
-        FROM tattoo_artists ta
-        JOIN users u ON ta.user_id = u.id
-        WHERE ta.user_id = $1
-      `, [userUid]);
-      return resultQuery.rows[0];
-    }
-
-    // If it's not a UUID, fetch the corresponding UUID from `users`
-    console.log("🔍 Looking up UUID for Firebase UID:", userUid);
-    const userQuery = `SELECT id FROM users WHERE uid = $1;`;
-    const userResult = await pool.query(userQuery, [userUid]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error("User not found in database");
+      throw new Error("Utilisateur introuvable dans la base de données.");
     }
 
     const userId = userResult.rows[0].id;
-    console.log("✅ Found UUID:", userId);
 
-    // Fetch tattoo artist and join to get firebase_uid
-    const resultQuery = await pool.query(`
-      SELECT ta.*, u.uid as firebase_uid
+    // Insère le nouveau tatoueur en base
+    const insertQuery = `
+      INSERT INTO tattoo_artists (user_id, title, phone, city, description, instagram_link, facebook_link)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;
+    `;
+    const values = [userId, title, phone, city, description, instagramLink, facebookLink];
+    const result = await pool.query(insertQuery, values);
+
+    // On récupère aussi le Firebase UID et on retourne une instance de TattooArtist
+    return new TattooArtist({ ...result.rows[0], uid });
+  } catch (error) {
+    console.error("Erreur lors de la création du tatoueur :", error);
+    throw error;
+  }
+};
+
+// Récupérer la liste des tatoueurs avec option de filtre (ville, titre)
+const getTattooArtists = async ({ city, title }) => {
+  const query = `
+    SELECT ta.*, u.uid
+    FROM tattoo_artists ta
+    JOIN users u ON ta.user_id = u.id
+    WHERE ($1::text IS NULL OR ta.city ILIKE $1)
+    AND ($2::text IS NULL OR ta.title ILIKE $2)
+  `;
+  const values = [city ? `%${city}%` : null, title ? `%${title}%` : null];
+  const result = await pool.query(query, values);
+
+  // Retourne un tableau d'instances de TattooArtist
+  return result.rows.map((row) => new TattooArtist(row));
+};
+
+// Récupérer un tatoueur unique via le Firebase UID
+const getTattooArtistByUserUid = async (firebaseUid) => {
+  try {
+    const query = `
+      SELECT ta.*, u.uid
       FROM tattoo_artists ta
       JOIN users u ON ta.user_id = u.id
-      WHERE ta.user_id = $1
-    `, [userId]);
+      WHERE u.uid = $1;
+    `;
+    const result = await pool.query(query, [firebaseUid]);
 
-    return resultQuery.rows[0];
+    if (result.rows.length === 0) {
+      throw new Error("Tatoueur introuvable");
+    }
+
+    return new TattooArtist(result.rows[0]);
   } catch (error) {
-    console.error("❌ Error fetching tattoo artist:", error);
+    console.error("Erreur getTattooArtistByUserUid :", error);
     throw error;
   }
 };
 
-// Update an existing tattoo artist profile
-const updateTattooArtist = async (userUid, artistProfile) => {
+// Met à jour un tatoueur via son Firebase UID
+const updateTattooArtist = async (firebaseUid, artistProfile) => {
   try {
-    console.log("🔍 Looking up UUID for Firebase UID:", userUid);
+    const existingArtist = await getTattooArtistByUserUid(firebaseUid);
+    existingArtist.update(artistProfile);
 
-    // Step 1: Convert Firebase UID to UUID
-    const userQuery = `SELECT id FROM users WHERE uid = $1;`;
-    const userResult = await pool.query(userQuery, [userUid]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error("User not found in database");
-    }
-
-    const userId = userResult.rows[0].id; // Extract the UUID
-    console.log("✅ Found UUID:", userId);
-
-    // Step 2: Update the tattoo artist profile
     const result = await pool.query(
       `UPDATE tattoo_artists
-       SET title = $1, 
-           phone = $2, 
-           instagram_link = COALESCE($3, instagram_link), 
-           facebook_link = COALESCE($4, facebook_link), 
-           city = $5, 
-           description = $6, 
+       SET title = $1,
+           phone = $2,
+           instagram_link = $3,
+           facebook_link = $4,
+           city = $5,
+           description = $6,
            updated_at = $7
-       WHERE user_id = $8 
-       RETURNING *`,
-      [
-        artistProfile.title || null,
-        artistProfile.phone || null,
-        artistProfile.instagramLink || null,
-        artistProfile.facebookLink || null,
-        artistProfile.city || null,
-        artistProfile.description || null,
-        new Date(),
-        userId, // Use UUID instead of Firebase UID
-      ]
+       WHERE id = $8
+       RETURNING *;`,
+      [existingArtist.title, existingArtist.phone, existingArtist.instagram_link, existingArtist.facebook_link, existingArtist.city, existingArtist.description, existingArtist.updatedAt, existingArtist.id]
     );
 
-    if (result.rowCount === 0) {
-      throw new Error("No artist found with the given UID.");
-    }
-
-    console.log("🟢 DB Update Successful:", result.rows[0]);
-    return result.rows[0];
+    return new TattooArtist({ ...result.rows[0], uid: firebaseUid });
   } catch (error) {
-    console.error("❌ Error updating tattoo artist:", error);
+    console.error("Erreur updateTattooArtist :", error);
     throw error;
   }
 };
 
-const deleteTattooArtist = async (userUid) => {
+// Supprime un tatoueur et son utilisateur lié via Firebase UID
+const deleteTattooArtist = async (firebaseUid) => {
   try {
-    console.log("🔍 Looking up UUID for Firebase UID:", userUid);
-
-    // Step 1: Retrieve the correct UUID from the users table
-    const userQuery = `SELECT id FROM users WHERE uid = $1;`;
-    const userResult = await pool.query(userQuery, [userUid]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error("User not found in database");
-    }
-
-    const userId = userResult.rows[0].id; // Extract the UUID
-    console.log("✅ Found UUID:", userId);
-
-    // Step 2: Delete the tattoo artist by UUID
-    const deleteArtistQuery = `DELETE FROM tattoo_artists WHERE user_id = $1 RETURNING *;`;
-    const deleteArtistResult = await pool.query(deleteArtistQuery, [userId]);
+    // Supprime le tatoueur via jointure
+    const deleteArtistQuery = `
+      DELETE FROM tattoo_artists ta
+      USING users u
+      WHERE ta.user_id = u.id
+      AND u.uid = $1
+      RETURNING ta.*;
+    `;
+    const deleteArtistResult = await pool.query(deleteArtistQuery, [firebaseUid]);
 
     if (deleteArtistResult.rowCount === 0) {
-      throw new Error("Tattoo artist profile not found");
+      throw new Error("Profil tatoueur introuvable.");
     }
 
-    console.log("🗑️ Tattoo artist profile deleted:", deleteArtistResult.rows[0]);
-
-    // Step 3: Optionally delete the user after tattoo artist profile is removed
-    const deleteUserQuery = `DELETE FROM users WHERE id = $1 RETURNING *;`;
-    const deleteUserResult = await pool.query(deleteUserQuery, [userId]);
+    // Supprime l'utilisateur correspondant
+    const deleteUserQuery = `DELETE FROM users WHERE uid = $1 RETURNING *;`;
+    const deleteUserResult = await pool.query(deleteUserQuery, [firebaseUid]);
 
     if (deleteUserResult.rowCount === 0) {
-      throw new Error("User not found or already deleted");
+      throw new Error("Utilisateur non trouvé ou déjà supprimé.");
     }
 
-    console.log("🗑️ User deleted:", deleteUserResult.rows[0]);
-
-    return { message: "Tattoo artist and user deleted successfully" };
+    return { message: "Tatoueur et utilisateur supprimés avec succès." };
   } catch (error) {
-    console.error("❌ Error deleting tattoo artist and user:", error);
+    console.error("Erreur lors de la suppression :", error);
     throw error;
   }
 };

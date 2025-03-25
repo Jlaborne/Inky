@@ -59,7 +59,7 @@ const ArtistListPage = () => {
                     <strong>Ville:</strong> {artist.city} <br />
                     <strong>Description:</strong> {artist.description}
                   </Card.Text>
-                  <Link to={`/artist/${artist.user_id}`} className="btn btn-primary">
+                  <Link to={`/artist/${artist.uid}`} className="btn btn-primary">
                     Voir le profil
                   </Link>
                 </Card.Body>
