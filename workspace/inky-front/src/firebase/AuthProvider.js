@@ -1,4 +1,3 @@
-// AuthProvider.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { useNavigate } from "react-router-dom";
@@ -15,17 +14,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Listen to auth state changes
-    console.log("🔄 Checking Firebase authentication...");
+    console.log("Checking Firebase authentication...");
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      console.log("🔥 Firebase Auth Change: ", user);
+      console.log("Firebase Auth Change: ", user);
       setCurrentUser(user);
       if (user) {
-        console.log("✅ User is logged in:", user.uid);
+        console.log("User is logged in:", user.uid);
         // Fetch user role from your backend
         const role = await fetchUserRole(user.uid);
         setUserRole(role);
       } else {
-        console.log("❌ No user detected, logging out.");
+        console.log("No user detected, logging out.");
         setUserRole(null);
       }
       setAuthLoading(false);
@@ -53,12 +52,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const publicRoutes = ["/", "/artists"]; // Routes accessibles sans connexion
-    if (!currentUser && !authLoading && !publicRoutes.includes(window.location.pathname)) {
+    if (
+      !currentUser &&
+      !authLoading &&
+      !publicRoutes.includes(window.location.pathname)
+    ) {
       navigate("/");
     }
   }, [currentUser, authLoading, navigate]);
 
-  return <AuthContext.Provider value={{ currentUser, userRole, authLoading }}>{authLoading ? <p>Loading...</p> : children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ currentUser, userRole, authLoading }}>
+      {authLoading ? <p>Loading...</p> : children}
+    </AuthContext.Provider>
+  );
 };
 
 // Custom hook to use the AuthContext
