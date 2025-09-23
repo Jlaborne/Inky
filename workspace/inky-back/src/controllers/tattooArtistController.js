@@ -1,14 +1,7 @@
 const { validationResult } = require("express-validator");
 const admin = require("firebase-admin");
 const tattooArtistQueries = require("../queries/tattooArtistQueries");
-
-// Helper function to handle validation errors
-const handleValidationErrors = (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-};
+const userQueries = require("../queries/userQueries");
 
 // Create a new tattoo artist profile
 const createTattooArtist = async (req, res) => {
@@ -23,23 +16,29 @@ const createTattooArtist = async (req, res) => {
 
   try {
     const user = await admin.auth().getUser(userUid);
-    const newTattooArtist = {
-      user_uid: userUid,
-      title,
-      phone,
-      email: user.email,
-      instagram_link: instagram_link || null,
-      facebook_link: facebook_link || null,
-      description: description || null,
-      city: city || null,
-    };
+
+    console.log("Received request for UID:", userUid);
+    console.log("Request body:", req.body);
+
+    if (!title || !phone || !city) {
+      return res
+        .status(400)
+        .json({ error: "Title, phone, and city are required fields." });
+    }
 
     const result = await tattooArtistQueries.createTattooArtist(
-      newTattooArtist
+      userUid,
+      title,
+      phone,
+      city,
+      description || null,
+      instagram_link || null,
+      facebook_link || null
     );
+
     res.status(201).json({
       message: "Tattoo artist profile created successfully!",
-      userUid: result.user_uid,
+      userUid: result.user_id,
     });
   } catch (error) {
     console.error("Error creating tattoo artist:", error);
@@ -50,10 +49,22 @@ const createTattooArtist = async (req, res) => {
 // Get all tattoo artists
 const getTattooArtists = async (req, res) => {
   try {
-    const artists = await tattooArtistQueries.getTattooArtists(req.query);
-    res.status(200).json(artists);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const { city = null, tags } = req.query || {};
+    let tagSlugs = [];
+
+    if (typeof tags === "string" && tags !== "") {
+      tagSlugs = tags.split(",");
+    }
+
+    const artists = await tattooArtistQueries.getTattooArtists({
+      city,
+      tagSlugs,
+    });
+
+    return res.json(artists);
+  } catch (e) {
+    console.error("getTattooArtists error:", e);
+    return res.status(500).send("Server error");
   }
 };
 
@@ -63,22 +74,28 @@ const getTattooArtistByUserUid = async (req, res) => {
     const artist = await tattooArtistQueries.getTattooArtistByUserUid(
       req.params.userUid
     );
-    if (!artist)
-      return res.status(404).json({ message: "Tattoo artist not found" });
-
-    res.status(200).json({ ...artist }); // Send artist object directly
+    res.status(200).json(artist);
   } catch (error) {
-    console.error("Error fetching tattoo artist:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 // Update a tattoo artist profile
 const updateTattooArtist = async (req, res) => {
+  const { userUid } = req.params;
+
+  // Verify current user is updating his profile
+  if (!req.user || req.user.uid !== userUid) {
+    return res
+      .status(403)
+      .json({ error: "Unauthorized to update this profile." });
+  }
+
   try {
+    const updatedFields = req.body;
     const updatedArtist = await tattooArtistQueries.updateTattooArtist(
-      req.params.userUid,
-      req.body
+      userUid,
+      updatedFields
     );
     res.status(200).json(updatedArtist);
   } catch (error) {
@@ -88,11 +105,37 @@ const updateTattooArtist = async (req, res) => {
 
 // Delete a tattoo artist
 const deleteTattooArtist = async (req, res) => {
+  const { userUid } = req.params;
+
+  if (!req.user || req.user.uid !== userUid) {
+    return res
+      .status(403)
+      .json({ error: "Unauthorized to delete this artist profile." });
+  }
+
   try {
-    await tattooArtistQueries.deleteTattooArtist(req.params.userUid);
-    res.status(200).send("Tattoo artist deleted");
+    const result = await tattooArtistQueries.deleteTattooArtist(userUid);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Artist not found in database." });
+    }
+
+    console.log(`Deleted Tattoo Artist: ${userUid}`);
+
+    await admin.auth().deleteUser(userUid);
+    console.log(`Deleted Firebase User: ${userUid}`);
+
+    await userQueries.deleteUser(userUid);
+    console.log(`Deleted User from Database: ${userUid}`);
+
+    return res.status(200).json({
+      message: "Tattoo artist and user account deleted successfully.",
+    });
   } catch (error) {
-    res.status(500).send("Error deleting tattoo artist");
+    console.error("Error deleting tattoo artist and user:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to delete tattoo artist and user." });
   }
 };
 

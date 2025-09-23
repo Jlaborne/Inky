@@ -1,10 +1,20 @@
-import React, { useState } from "react";
-import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Form,
+  Card,
+  Container,
+  Row,
+  Col,
+  Alert,
+} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { signIn } from "../firebase/auth"; // Adjust the path if necessary
+import { useAuth } from "../firebase/AuthProvider";
+import { signIn } from "../firebase/auth";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { currentUser, authLoading, userRole } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     lastName: "",
@@ -13,52 +23,79 @@ const Home = () => {
     password: "",
     role: "user",
   });
-  const [feedbackMessage, setFeedbackMessage] = useState({ type: "", text: "" });
+  const [feedbackMessage, setFeedbackMessage] = useState({
+    type: "",
+    text: "",
+  });
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (currentUser) {
+      if (!userRole) return;
+      navigate(userRole === "tattoo" ? "/create-artist" : "/artists");
+    }
+  }, [currentUser, userRole, authLoading, navigate]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   // Submit handler for both login and register actions
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      let response, userCredential;
-
       if (isLogin) {
-        userCredential = await signIn(formData.email, formData.password);
-        const role = await fetchUserRole(userCredential.user.uid);
-        navigate(role === "tattoo" ? "/create-artist" : "/artists");
+        await signIn(formData.email, formData.password);
         setFeedbackMessage({ type: "success", text: "Login successful!" });
       } else {
-        response = await fetch("http://localhost:5000/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+        const res = await fetch(
+          `${
+            process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"
+          }/auth/register`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          }
+        );
+        if (!res.ok) throw new Error("Registration failed.");
+        setFeedbackMessage({
+          type: "success",
+          text: "User registered successfully!",
         });
-        if (!response.ok) throw new Error("Registration failed.");
-        setFeedbackMessage({ type: "success", text: "User registered successfully!" });
-        setFormData({ lastName: "", firstName: "", email: "", password: "", role: "user" });
+        setFormData({
+          lastName: "",
+          firstName: "",
+          email: "",
+          password: "",
+          role: "user",
+        });
+        setIsLogin(true);
       }
     } catch (error) {
-      setFeedbackMessage({ type: "danger", text: error.message || "An error occurred. Please try again." });
+      setFeedbackMessage({
+        type: "danger",
+        text: error.message || "An error occurred. Please try again.",
+      });
     }
   };
 
   // Fetch user role function
+  /*
   const fetchUserRole = async (uid) => {
+    const cachedRole = localStorage.getItem(`user_role_${uid}`);
+    if (cachedRole) return cachedRole;
+
     const response = await fetch(`http://localhost:5000/api/users/${uid}`);
     if (!response.ok) {
       throw new Error("Failed to fetch user role");
     }
     const data = await response.json();
+    localStorage.setItem(`user_role_${uid}`, data.role);
     return data.role;
-  };
+  };*/
 
   return (
     <Container className="mt-5">
@@ -69,13 +106,17 @@ const Home = () => {
 
       <div className="text-center mb-4">
         <Button
-          variant="outline-primary"
+          variant={isLogin ? "primary" : "outline-primary"}
           onClick={() => setIsLogin(true)}
           className={`me-2 ${isLogin ? "active" : ""}`}
         >
           Se connecter
         </Button>
-        <Button variant="outline-secondary" onClick={() => setIsLogin(false)}>
+        <Button
+          variant={!isLogin ? "primary" : "outline-secondary"}
+          onClick={() => setIsLogin(false)}
+          className={!isLogin ? "active" : ""}
+        >
           Créer un compte
         </Button>
       </div>
@@ -87,7 +128,9 @@ const Home = () => {
       <Row className="justify-content-center">
         <Col md={6}>
           <Card className="p-4 shadow-sm rounded">
-            <h2 className="text-center mb-3">{isLogin ? "Login" : "Register"}</h2>
+            <h2 className="text-center mb-3">
+              {isLogin ? "Connexion" : "Créer un compte"}
+            </h2>
             <Form onSubmit={handleSubmit}>
               {!isLogin && (
                 <>
@@ -158,7 +201,7 @@ const Home = () => {
                 />
               </Form.Group>
               <Button variant="success" type="submit" className="w-100">
-                {isLogin ? "Login" : "Register"}
+                {isLogin ? "Connexion" : "Créer un compte"}
               </Button>
             </Form>
           </Card>

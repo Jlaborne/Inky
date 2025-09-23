@@ -1,76 +1,63 @@
 const request = require("supertest");
 const app = require("../server"); // Express server instance
-const { pool } = require("../src/db/pool");
 const admin = require("firebase-admin");
+const { pool } = require("../src/db/pool"); // Ensure pool is imported
 
-// Mock Firebase Admin SDK
-jest.mock("firebase-admin", () => ({
-  auth: jest.fn(() => ({
-    createUser: jest.fn(async ({ email }) => ({
-      uid: "mock-firebase-uid",
-      email,
-    })),
-    getUser: jest.fn(async () => ({
-      uid: "mock-firebase-uid",
-      email: "testuser@example.com",
-    })),
-    deleteUser: jest.fn(async () => Promise.resolve()),
-  })),
-}));
-
-// Mock PostgreSQL Database Queries
-jest.mock("../src/db/pool", () => ({
-  query: jest.fn(),
-}));
+// Debug log to verify pool import
+console.log("Pool imported:", !!pool);
 
 describe("Authentication API Tests", () => {
   let testUser = {
-    email: "testuser@example.com",
+    email: "testuser4@example.com",
     password: "password123",
     lastName: "Doe",
     firstName: "John",
     role: "tattoo",
   };
 
-  afterAll(() => {
-    jest.clearAllMocks(); // Clear mocks after tests
+  afterEach(async () => {
+    // Clean up Firebase user after each test
+    try {
+      const userRecord = await admin.auth().getUserByEmail(testUser.email);
+      console.log(`Deleting Firebase user: ${userRecord.uid}`);
+      await admin.auth().deleteUser(userRecord.uid);
+    } catch (error) {
+      // Handle error if user does not exist in Firebase
+      if (error.code !== "auth/user-not-found") {
+        console.error("Firebase cleanup error:", error);
+      } else {
+        console.log("Firebase user not found, skipping deletion.");
+      }
+    }
+
+    // Clean up PostgreSQL user after each test
+    try {
+      const result = await pool.query("DELETE FROM users WHERE email = $1 RETURNING *", [testUser.email]);
+      if (result.rowCount > 0) {
+        console.log(`Deleted PostgreSQL user: ${result.rows[0].uid}`);
+      } else {
+        console.log("PostgreSQL user not found, skipping deletion.");
+      }
+    } catch (error) {
+      console.error("PostgreSQL cleanup error:", error);
+    }
   });
 
   it("should create a new user", async () => {
-    // Mock PostgreSQL insert query
-    pool.query.mockResolvedValueOnce({ rows: [{ uid: "mock-firebase-uid" }] });
-
     const res = await request(app).post("/auth/register").send(testUser);
-
-    console.log("Response:", res.body); // Debugging output
-
+    console.log("Test: should create a new user", res.body);
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty("uid", "mock-firebase-uid");
     expect(res.body).toHaveProperty("message", "User registered successfully");
-
-    // Verify that Firebase & PostgreSQL methods were called
-    expect(admin.auth().createUser).toHaveBeenCalledTimes(1);
-    expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining("INSERT INTO users"),
-      expect.any(Array)
-    );
   });
 
   it("should return error for duplicate email", async () => {
-    // Mock Firebase & PostgreSQL behavior for duplicate email
-    admin
-      .auth()
-      .createUser.mockRejectedValueOnce(new Error("Email already exists"));
-    pool.query.mockRejectedValueOnce(new Error("User already exists"));
+    // First, create the user
+    await request(app).post("/auth/register").send(testUser);
 
+    // Then, attempt to create the user again
     const res = await request(app).post("/auth/register").send(testUser);
-
+    console.log("Test: should return error for duplicate email", res.body);
     expect(res.statusCode).toBe(400);
-    expect(res.body).toHaveProperty("error");
-    expect(res.body.error).toContain("already exists");
-
-    // Ensure Firebase was called but rejected
-    expect(admin.auth().createUser).toHaveBeenCalledTimes(1);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(res.body).toHaveProperty("error", "Email already in use");
   });
 });

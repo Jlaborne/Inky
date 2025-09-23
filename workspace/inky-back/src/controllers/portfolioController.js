@@ -1,32 +1,45 @@
-const pool = require("../db/pool");
+const {
+  createPortfolio,
+  addImageToPortfolio,
+  getPortfoliosByArtistUid,
+  getPortfolioByIdWithImages,
+  deletePortfolio,
+  deletePortfolioImage,
+} = require("../queries/portfolioQueries");
 
-// Create a new portfolio
-const createPortfolio = async (req, res) => {
-  const { artistUid, title, description } = req.body;
+// Créer un nouveau portfolio
+const createPortfolioController = async (req, res) => {
+  const { title, description, tags } = req.body;
   const mainImageFile = req.file;
 
   if (!mainImageFile) {
     return res.status(400).json({ error: "Main image is required" });
   }
 
-  // Construct the URL for the main image
-  //const mainImageUrl = `root/inky/uploads/${mainImageFile.filename}`;
-  const mainImageUrl = `http://localhost:5000/uploads/${mainImageFile.filename}`
-  
+  let tagSlugs = [];
+  if (typeof tags === "string" && tags !== "") {
+    tagSlugs = tags.split(",");
+  }
+
   try {
-    const result = await pool.query(
-      `INSERT INTO portfolios (artist_uid, title, main_image_url, description) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [artistUid, title, mainImageUrl, description]
+    const firebaseUid = req.user.uid;
+
+    const portfolio = await createPortfolio(
+      firebaseUid,
+      title,
+      description,
+      mainImageFile.filename,
+      tagSlugs
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(portfolio);
   } catch (error) {
-    console.error("Error creating portfolio:", error);
+    console.error("createPortfolioController :", error.message);
     res.status(500).json({ error: "Failed to create portfolio" });
   }
 };
 
-// Add flash tattoo images to a portfolio
-const addPortfolioImage = async (req, res) => {
+// Ajouter une image à un portfolio
+const addPortfolioImageController = async (req, res) => {
   const { portfolioId } = req.params;
   const imageFile = req.file;
 
@@ -34,62 +47,115 @@ const addPortfolioImage = async (req, res) => {
     return res.status(400).json({ error: "Image file is required" });
   }
 
-  // Construct URL for additional images
-  const imageUrl = `http://localhost:5000/uploads/${imageFile.filename}`;
-
   try {
-    const result = await pool.query(
-      `INSERT INTO portfolio_images (portfolio_id, image_url, available) VALUES ($1, $2, $3) RETURNING *`,
-      [portfolioId, imageUrl, true]
-    );
-    res.status(201).json(result.rows[0]);
+    const image = await addImageToPortfolio(portfolioId, imageFile.filename);
+    res.status(201).json(image);
   } catch (error) {
-    console.error("Error adding portfolio image:", error);
+    console.error("addPortfolioImageController :", error.message);
     res.status(500).json({ error: "Failed to add portfolio image" });
   }
 };
 
-// Fetch all portfolios by artist
-const getPortfoliosByArtist = async (req, res) => {
-  const { artistUid } = req.params;
+// Récupérer tous les portfolios d'un artiste (via Firebase UID)
+const getPortfoliosByArtistController = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM portfolios WHERE artist_uid = $1 ORDER BY created_at DESC`,
-      [artistUid]
-    );
-    res.status(200).json(result.rows);
+    const firebaseUid = req.params.artistUid;
+    const portfolios = await getPortfoliosByArtistUid(firebaseUid);
+    res.status(200).json(portfolios);
   } catch (error) {
-    console.error("Error fetching portfolios:", error);
-    res.status(500).json({ error: "Failed to fetch portfolios" });
+    console.error("getPortfoliosByArtistController :", error.message);
+    res.status(500).json({ error: "Failed to fetch portfolios." });
   }
 };
 
-// Fetch portfolio details with all images
-const getPortfolioDetails = async (req, res) => {
+// Détails d’un portfolio + images
+const getPortfolioDetailsController = async (req, res) => {
+  try {
+    const portfolio = await getPortfolioByIdWithImages(req.params.portfolioId);
+    res.status(200).json(portfolio);
+  } catch (error) {
+    console.error("getPortfolioDetailsController :", error.message);
+    res.status(500).json({ error: "Failed to fetch portfolio details." });
+  }
+};
+
+const deletePortfolioController = async (req, res) => {
+  try {
+    const portfolioId = req.params.portfolioId;
+    const deleted = await deletePortfolio(portfolioId);
+    res.status(200).json({ message: "Portfolio supprimé", deleted });
+  } catch (error) {
+    console.error("eletePortfolioImageController :", error.message);
+    res.status(500).json({ error: "Failed to delete portfolio" });
+  }
+};
+
+const deletePortfolioImageController = async (req, res) => {
+  try {
+    const imageId = req.params.imageId;
+    const deleted = await deletePortfolioImage(imageId);
+    res.status(200).json({ message: "Image supprimée", deleted });
+  } catch (error) {
+    console.error("eletePortfolioImageController :", error.message);
+    res.status(500).json({ error: "Failed to delete image" });
+  }
+};
+
+/*
+const setPortfolioTags = async (req, res) => {
   const { portfolioId } = req.params;
+  const { tags } = req.body;
+
+  if (!Array.isArray(tags)) {
+    return res
+      .status(400)
+      .json({ error: "Body must contain 'tags' array of slugs" });
+  }
+  const slugs = tags.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+
   try {
-    const portfolioResult = await pool.query(
-      `SELECT * FROM portfolios WHERE id = $1`,
-      [portfolioId]
+    await pool.query("BEGIN");
+
+    // Récupérer les tag_ids existants par slug
+    const { rows: tagRows } = await pool.query(
+      "SELECT id, slug FROM public.tags WHERE slug = ANY($1::text[])",
+      [slugs]
     );
-    const imagesResult = await pool.query(
-      `SELECT * FROM portfolio_images WHERE portfolio_id = $1 ORDER BY created_at DESC`,
+    const foundSlugs = new Set(tagRows.map((r) => r.slug));
+    const missing = slugs.filter((s) => !foundSlugs.has(s));
+    if (missing.length) {
+      await pool.query("ROLLBACK");
+      return res.status(400).json({ error: "Unknown tag slugs", missing });
+    }
+
+    // Remplacer l’ensemble des tags du portfolio (idempotent)
+    await pool.query(
+      "DELETE FROM public.portfolio_tags WHERE portfolio_id = $1",
       [portfolioId]
     );
 
-    res.status(200).json({
-      ...portfolioResult.rows[0],
-      images: imagesResult.rows,
-    });
-  } catch (error) {
-    console.error("Error fetching portfolio details:", error);
-    res.status(500).json({ error: "Failed to fetch portfolio details" });
+    const values = tagRows.map((r) => `('${portfolioId}','${r.id}')`).join(",");
+    if (values) {
+      await pool.query(
+        `INSERT INTO public.portfolio_tags (portfolio_id, tag_id) VALUES ${values}
+         ON CONFLICT DO NOTHING`
+      );
+    }
+
+    await pool.query("COMMIT");
+    return res.json({ portfolioId, tags: slugs });
+  } catch (e) {
+    await pool.query("ROLLBACK");
+    console.error("setPortfolioTags error:", e);
+    return res.status(500).send("Server error");
   }
-};
+};*/
 
 module.exports = {
-  createPortfolio,
-  addPortfolioImage,
-  getPortfoliosByArtist,
-  getPortfolioDetails,
+  createPortfolio: createPortfolioController,
+  addPortfolioImage: addPortfolioImageController,
+  getPortfoliosByArtist: getPortfoliosByArtistController,
+  getPortfolioDetails: getPortfolioDetailsController,
+  deletePortfolio: deletePortfolioController,
+  deletePortfolioImage: deletePortfolioImageController,
 };

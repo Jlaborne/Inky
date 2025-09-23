@@ -1,4 +1,3 @@
-// AuthProvider.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { useNavigate } from "react-router-dom";
@@ -15,13 +14,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Listen to auth state changes
+    console.log("Checking Firebase authentication...");
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      console.log("Firebase Auth Change: ", user);
       setCurrentUser(user);
       if (user) {
+        console.log("User is logged in:", user.uid);
         // Fetch user role from your backend
         const role = await fetchUserRole(user.uid);
         setUserRole(role);
       } else {
+        console.log("No user detected, logging out.");
         setUserRole(null);
       }
       setAuthLoading(false);
@@ -31,17 +34,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchUserRole = async (uid) => {
-    const response = await fetch(`http://localhost:5000/api/users/${uid}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch user role");
-    }
+    const user = auth.currentUser;
+    const idToken = user ? await user.getIdToken() : null;
+
+    const response = await fetch(
+      `${
+        process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"
+      }/api/users/${uid}`,
+      {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch user role");
     const data = await response.json();
     return data.role;
   };
 
   useEffect(() => {
-    // Redirect to login if unauthenticated and auth check is complete
-    if (!currentUser && !authLoading) {
+    const publicRoutes = ["/", "/artists"]; // Routes accessibles sans connexion
+    if (
+      !currentUser &&
+      !authLoading &&
+      !publicRoutes.includes(window.location.pathname)
+    ) {
       navigate("/");
     }
   }, [currentUser, authLoading, navigate]);

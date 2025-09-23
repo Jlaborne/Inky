@@ -1,21 +1,12 @@
-const pool = require("../db/pool");
+const { pool } = require("../db/pool");
 const User = require("../models/user");
 
 // Get all users
 const getUsers = async () => {
   try {
-    const resultQuery = await pool.query(
-      "SELECT * FROM users ORDER BY uid ASC"
-    );
+    const resultQuery = await pool.query("SELECT * FROM users ORDER BY uid ASC");
     return resultQuery.rows.map((row) => {
-      return new User(
-        row.uid,
-        row.last_name,
-        row.first_name,
-        row.email,
-        row.password,
-        row.role
-      );
+      return new User(row.uid, row.last_name, row.first_name, row.email, row.password, row.role);
     });
   } catch (error) {
     console.error(`getUsers error: ${error}`);
@@ -26,10 +17,7 @@ const getUsers = async () => {
 // Get user by UID
 const getUserById = async (uid) => {
   try {
-    const resultQuery = await pool.query(
-      "SELECT uid, last_name, first_name, email, role FROM users WHERE uid = $1",
-      [uid]
-    );
+    const resultQuery = await pool.query("SELECT uid, last_name, first_name, email, role FROM users WHERE uid = $1", [uid]);
     const result = resultQuery.rows[0];
 
     if (!result) {
@@ -43,53 +31,57 @@ const getUserById = async (uid) => {
   }
 };
 
-// Create a new user (Ensure password hashing before storing)
 const createUser = async (user) => {
   try {
-    console.log("Creating user with UID: ", user.uid);
-    const resultQuery = await pool.query(
-      "INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid",
-      [user.uid, user.lastName, user.firstName, user.email, user.role]
-    );
+    console.log("Creating user with UID:", user.uid);
+    console.log("Running query: INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid");
+    console.log("Query parameters:", [user.uid, user.lastName, user.firstName, user.email, user.role]);
+
+    const resultQuery = await pool.query("INSERT INTO users (uid, last_name, first_name, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING uid", [user.uid, user.lastName, user.firstName, user.email, user.role]);
+
+    console.log("Query Result:", resultQuery);
+
+    if (!resultQuery || !resultQuery.rows) {
+      throw new Error("Database query returned undefined!");
+    }
+
     return resultQuery.rows[0];
   } catch (error) {
-    console.error(`createUser error: ${error}`);
+    console.error("createUser error:", error);
     throw error;
   }
 };
 
 // Update user details (with email change validation)
-const updateUser = async (uid, updates) => {
-  try {
-    // Prevent email hijacking by requiring re-authentication (handled on the frontend)
-    const existingUser = await getUserById(uid);
-    if (!existingUser) {
-      throw new Error("User not found.");
-    }
+const updateUser = async ({ uid, lastName, firstName, email }) => {
+  const query = `
+    UPDATE users
+    SET
+      last_name = COALESCE($1, last_name),
+      first_name = COALESCE($2, first_name),
+      email = COALESCE($3, email),
+      updated_at = NOW()
+    WHERE uid = $4
+    RETURNING *;
+  `;
 
-    const result = await pool.query(
-      "UPDATE users SET last_name = $1, first_name = $2, email = $3 WHERE uid = $4 RETURNING *",
-      [updates.lastName, updates.firstName, updates.email, uid]
-    );
-
-    if (result.rowCount === 0) {
-      throw new Error("User update failed.");
-    }
-
-    return result.rows[0];
-  } catch (error) {
-    console.error(`updateUser error: ${error}`);
-    throw error;
-  }
+  const values = [lastName || null, firstName || null, email || null, uid];
+  const result = await pool.query(query, values);
+  return result.rows[0];
 };
 
-// Delete a user (Fix: Use UID instead of ID)
+// Delete a user from PostgreSQL
 const deleteUser = async (uid) => {
   try {
-    const result = await pool.query("DELETE FROM users WHERE uid = $1", [uid]);
+    const result = await pool.query("DELETE FROM users WHERE uid = $1 RETURNING *", [uid]);
+
     if (result.rowCount === 0) {
-      throw new Error("User deletion failed. No user found.");
+      console.warn(`No user found with UID: ${uid}`);
+      return null; // Return null to handle this case properly
     }
+
+    console.log(`Deleted PostgreSQL user: ${uid}`);
+    return result; // Ensure we return the result
   } catch (error) {
     console.error(`deleteUser error: ${error}`);
     throw error;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../firebase/AuthProvider";
-import { Form, Button, Alert, Container, Spinner } from "react-bootstrap";
+import { signOutUser } from "../firebase/auth";
+import { Form, Button, Alert, Container, Spinner, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 const EditProfile = () => {
@@ -11,9 +12,10 @@ const EditProfile = () => {
     firstName: "",
     email: "",
   });
-  const [loading, setLoading] = useState(true); // Loading state for user data fetch
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (authLoading) return; // Wait until authentication is resolved
@@ -28,12 +30,9 @@ const EditProfile = () => {
     const fetchUserData = async () => {
       try {
         const token = await currentUser.getIdToken();
-        const response = await fetch(
-          `http://localhost:5000/api/users/${currentUser.uid}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await fetch(`http://localhost:5000/api/users/${currentUser.uid}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!response.ok) throw new Error("Error fetching user data.");
 
         const data = await response.json();
@@ -71,21 +70,43 @@ const EditProfile = () => {
 
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(
-        `http://localhost:5000/api/users/${currentUser.uid}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(userData),
-        }
-      );
+      const response = await fetch(`http://localhost:5000/api/users/${currentUser.uid}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
 
       if (!response.ok) throw new Error("Error updating profile.");
 
       setSuccessMessage("Profile updated successfully.");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setShowDeleteModal(false);
+    if (!currentUser) return;
+
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`http://localhost:5000/api/users/${currentUser.uid}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to delete account.");
+
+      setSuccessMessage("Account deleted successfully. Redirecting...");
+      await signOutUser();
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -109,33 +130,23 @@ const EditProfile = () => {
 
   return (
     <Container className="mt-5">
-      <h2>Edit Profile</h2>
+      <h2>Modifier mes informations</h2>
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
       <Form onSubmit={handleSubmit}>
         <Form.Group controlId="formFirstName">
-          <Form.Label>First Name</Form.Label>
-          <Form.Control
-            type="text"
-            name="firstName"
-            value={userData.firstName}
-            onChange={handleChange}
-          />
+          <Form.Label>Prénom</Form.Label>
+          <Form.Control type="text" name="firstName" value={userData.firstName} onChange={handleChange} />
         </Form.Group>
 
         <Form.Group controlId="formLastName">
-          <Form.Label>Last Name</Form.Label>
-          <Form.Control
-            type="text"
-            name="lastName"
-            value={userData.lastName}
-            onChange={handleChange}
-          />
+          <Form.Label>Nom de Famille</Form.Label>
+          <Form.Control type="text" name="lastName" value={userData.lastName} onChange={handleChange} />
         </Form.Group>
 
         <Form.Group controlId="formEmail">
-          <Form.Label>Email Address</Form.Label>
+          <Form.Label>Adresse Email</Form.Label>
           <Form.Control
             type="email"
             name="email"
@@ -146,9 +157,34 @@ const EditProfile = () => {
         </Form.Group>
 
         <Button variant="primary" type="submit">
-          Update
+          Mise à jour
+        </Button>
+        {/* Delete Account Button */}
+        <Button variant="danger" className="ms-3" onClick={() => setShowDeleteModal(true)}>
+          Supprimer mon compte
         </Button>
       </Form>
+
+      {/* Confirm Deletion Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmation</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Etes-vous sure de vouloir supprimer votre compte</p>
+          <p>
+            <strong>Cette action est irréversible</strong>
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button variant="danger" onClick={handleDeleteAccount}>
+            Confirmer
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
