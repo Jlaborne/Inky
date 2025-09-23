@@ -1,11 +1,11 @@
 const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
-const { auth } = require("../../firebase");
+/*const { auth } = require("../../firebase");
 const {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-} = require("firebase/auth");
+} = require("firebase/auth");*/
 const admin = require("firebase-admin");
 
 // Register user (Firebase + PostgreSQL)
@@ -18,9 +18,40 @@ const registerUser = async (req, res) => {
   }
 
   const { email, password, lastName, firstName, role } = req.body;
-  let userCredential = null;
 
   try {
+    // 1) Créer l'utilisateur dans Firebase (Admin SDK)
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      displayName: `${firstName ?? ""} ${lastName ?? ""}`.trim(),
+    });
+    const uid = userRecord.uid;
+    console.log("Generated Firebase UID:", uid);
+
+    // (Optionnel) setCustomUserClaims si tu veux des rôles côté token
+    // await admin.auth().setCustomUserClaims(uid, { role });
+
+    // 2) Enregistrer en DB (sans password)
+    const user = new User(uid, lastName, firstName, email, role);
+    await userQueries.createUser(user);
+
+    // 3) Redirection logique
+    const redirectTo = role === "tattoo" ? "/create-artist" : "/";
+
+    return res.status(201).json({
+      uid,
+      message: "User registered successfully",
+      redirectTo,
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+
+  //let userCredential = null;
+
+  /*try {
     // Step 1: Register user in Firebase
     userCredential = await createUserWithEmailAndPassword(
       auth,
@@ -63,7 +94,8 @@ const registerUser = async (req, res) => {
     }
 
     return res.status(500).json({ error: "Internal Server Error" });
-  }
+  }*/
+
 };
 
 // Get all users
@@ -83,6 +115,14 @@ const getUserById = async (req, res) => {
   console.log("Fetching user with UID:", req.params.uid);
   try {
     const uid = req.params.uid;
+
+    const requesterUid = req.user?.uid;
+    const isAdmin = req.user?.admin === true;
+
+    if (uid !== requesterUid && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const result = await userQueries.getUserById(uid);
 
     if (!result) {

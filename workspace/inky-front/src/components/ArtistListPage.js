@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Card, Container, Row, Col, Form, Spinner } from "react-bootstrap";
+import {
+  Card,
+  Container,
+  Row,
+  Col,
+  Form,
+  Spinner,
+  Button,
+  Badge,
+} from "react-bootstrap";
 import { Link } from "react-router-dom";
 
 const ArtistListPage = () => {
@@ -7,59 +16,173 @@ const ArtistListPage = () => {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchArtists = async (cityFilter) => {
-    setLoading(true);
-    console.log("Fetching artists with city filter:", cityFilter);
+  const [allTags, setAllTags] = useState([]); // tags depuis l'API
+  const [selectedTags, setSelectedTags] = useState([]); // slugs sélectionnés
+  const [loadingTags, setLoadingTags] = useState(false);
+
+  // --- API CALLS ---
+
+  const fetchTags = async () => {
+    setLoadingTags(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/artists?city=${cityFilter || ""}`);
-      console.log("Response status:", response.status);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
-      const data = await response.json();
-      setArtists(data);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des artistes :", error.message);
+      const resp = await fetch("http://localhost:5000/api/tags");
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json(); // attendu: [{ name, slug }, ...]
+      setAllTags(data);
+    } catch (e) {
+      console.error("Erreur récupération tags:", e.message);
+      setAllTags([]); // fallback: vide
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const fetchArtists = async (cityFilter, tagSlugs = []) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (cityFilter) params.set("city", cityFilter);
+      if (tagSlugs.length) params.set("tags", tagSlugs.join(","));
+      const resp = await fetch(`http://localhost:5000/api/artists?${params}`);
+      if (!resp.ok) throw new Error(await resp.text());
+      setArtists(await resp.json());
+    } catch (e) {
+      console.error("Erreur récup artistes:", e.message);
+      setArtists([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Appliquer un délai pour éviter les appels API trop fréquents
+  // Charger les tags au montage
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchArtists(city);
-    }, 200);
+    fetchTags();
+  }, []);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [city]);
+  // Rechercher quand ville ou tags changent (avec petit debounce sur la ville)
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchArtists(city, selectedTags);
+    }, 200);
+    return () => clearTimeout(delay);
+  }, [city, selectedTags]);
+
+  // --- UI handlers ---
+
+  const toggleTag = (slug) => {
+    setSelectedTags((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  };
+
+  const resetTags = () => setSelectedTags([]);
+
+  // --- RENDER ---
 
   return (
     <Container className="mt-4">
-      <h2 className="text-center mb-4">Recherche de Tatoueurs par Ville</h2>
+      <h2 className="text-center mb-4">Recherche de Tatoueurs</h2>
 
-      <Form.Group controlId="cityFilter" className="mb-4 text-center">
-        <Form.Control type="text" placeholder="Entrez une ville" value={city} onChange={(e) => setCity(e.target.value)} style={{ width: "100%", maxWidth: "300px", margin: "0 auto" }} />
+      {/* Filtre ville */}
+      <Form.Group controlId="cityFilter" className="mb-3 text-center">
+        <Form.Control
+          type="text"
+          placeholder="Entrez une ville (ex: Lyon)"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          style={{ width: "100%", maxWidth: "300px", margin: "0 auto" }}
+        />
       </Form.Group>
 
+      {/* Filtre tags (depuis l'API) */}
+      <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
+        {loadingTags ? (
+          <span className="text-muted">Chargement des styles…</span>
+        ) : allTags.length === 0 ? (
+          <span className="text-muted">Aucun style disponible</span>
+        ) : (
+          allTags.map((t) => (
+            <Button
+              key={t.slug}
+              size="sm"
+              variant={
+                selectedTags.includes(t.slug) ? "primary" : "outline-primary"
+              }
+              onClick={() => toggleTag(t.slug)}
+            >
+              {t.name}
+            </Button>
+          ))
+        )}
+        {selectedTags.length > 0 && (
+          <Button
+            size="sm"
+            variant="link"
+            className="text-danger"
+            onClick={resetTags}
+          >
+            Réinitialiser
+          </Button>
+        )}
+      </div>
+
+      {/* Liste artistes */}
       {loading ? (
         <div className="text-center">
           <Spinner animation="border" variant="primary" />
-          <p>Chargement des artistes...</p>
+          <p>Chargement des artistes…</p>
         </div>
       ) : artists.length > 0 ? (
         <Row>
           {artists.map((artist) => (
             <Col md={6} lg={4} className="mb-4" key={artist.uid}>
-              <Card className="h-100 shadow-sm d-flex flex-column">
+              <Card
+                className="h-100 shadow-sm d-flex flex-column w-100"
+                style={{ minHeight: 300 }}
+              >
                 <Card.Body className="d-flex flex-column">
-                  <Card.Title className="text-center">{artist.title}</Card.Title>
+                  <Card.Title className="text-center">
+                    {artist.title}
+                  </Card.Title>
                   <Card.Text className="flex-grow-1">
-                    <strong>Ville:</strong> {artist.city} <br />
-                    <strong>Description:</strong> {artist.description}
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      <strong>Ville:</strong> {artist.city}
+                    </div>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      <strong>Description:</strong> {artist.description}
+                    </div>
                   </Card.Text>
-                  <Link to={`/artist/${artist.uid}`} className="btn btn-primary">
+
+                  {/* Badge de pertinence si l'API le renvoie et si un filtre tag est actif */}
+                  {selectedTags.length > 0 &&
+                    typeof artist.n_portfolios_with_tag === "number" && (
+                      <Badge bg="secondary" className="align-self-start mb-2">
+                        {artist.n_portfolios_with_tag} portfolio(s)
+                        correspondant(s)
+                      </Badge>
+                    )}
+
+                  <Link
+                    to={`/artist/${artist.uid}`}
+                    className="btn btn-primary mt-auto"
+                  >
                     Voir le profil
                   </Link>
                 </Card.Body>
@@ -68,7 +191,7 @@ const ArtistListPage = () => {
           ))}
         </Row>
       ) : (
-        <p className="text-center text-muted">Aucun artiste trouvé pour cette ville.</p>
+        <p className="text-center text-muted">Aucun artiste trouvé.</p>
       )}
     </Container>
   );

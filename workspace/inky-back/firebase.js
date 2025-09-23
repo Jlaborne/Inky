@@ -1,4 +1,4 @@
-const dotenv = require("dotenv");
+/*const dotenv = require("dotenv");
 const { initializeApp } = require("firebase/app");
 const { getAuth } = require("firebase/auth");
 
@@ -25,3 +25,4 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 module.exports = { auth };
+*/

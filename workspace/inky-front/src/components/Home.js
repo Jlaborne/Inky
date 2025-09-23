@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
+import {
+  Button,
+  Form,
+  Card,
+  Container,
+  Row,
+  Col,
+  Alert,
+} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../firebase/AuthProvider";
 import { signIn } from "../firebase/auth";
@@ -21,10 +29,12 @@ const Home = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && currentUser) {
-      navigate("/artists");
+    if (authLoading) return;
+    if (currentUser) {
+      if (!userRole) return;
+      navigate(userRole === "tattoo" ? "/create-artist" : "/artists");
     }
-  }, [currentUser, authLoading, userRole, navigate]);
+  }, [currentUser, userRole, authLoading, navigate]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -36,20 +46,21 @@ const Home = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      let response, userCredential;
-
       if (isLogin) {
-        userCredential = await signIn(formData.email, formData.password);
-        const role = await fetchUserRole(userCredential.user.uid);
-        navigate(role === "tattoo" ? "/create-artist" : "/artists");
+        await signIn(formData.email, formData.password);
         setFeedbackMessage({ type: "success", text: "Login successful!" });
       } else {
-        response = await fetch("http://localhost:5000/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (!response.ok) throw new Error("Registration failed.");
+        const res = await fetch(
+          `${
+            process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"
+          }/auth/register`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          }
+        );
+        if (!res.ok) throw new Error("Registration failed.");
         setFeedbackMessage({
           type: "success",
           text: "User registered successfully!",
@@ -61,6 +72,7 @@ const Home = () => {
           password: "",
           role: "user",
         });
+        setIsLogin(true);
       }
     } catch (error) {
       setFeedbackMessage({
@@ -71,6 +83,7 @@ const Home = () => {
   };
 
   // Fetch user role function
+  /*
   const fetchUserRole = async (uid) => {
     const cachedRole = localStorage.getItem(`user_role_${uid}`);
     if (cachedRole) return cachedRole;
@@ -82,7 +95,7 @@ const Home = () => {
     const data = await response.json();
     localStorage.setItem(`user_role_${uid}`, data.role);
     return data.role;
-  };
+  };*/
 
   return (
     <Container className="mt-5">
@@ -92,45 +105,100 @@ const Home = () => {
       </header>
 
       <div className="text-center mb-4">
-        <Button variant={isLogin ? "primary" : "outline-primary"} onClick={() => setIsLogin(true)} className={`me-2 ${isLogin ? "active" : ""}`}>
+        <Button
+          variant={isLogin ? "primary" : "outline-primary"}
+          onClick={() => setIsLogin(true)}
+          className={`me-2 ${isLogin ? "active" : ""}`}
+        >
           Se connecter
         </Button>
-        <Button variant={!isLogin ? "primary" : "outline-secondary"} onClick={() => setIsLogin(false)} className={!isLogin ? "active" : ""}>
+        <Button
+          variant={!isLogin ? "primary" : "outline-secondary"}
+          onClick={() => setIsLogin(false)}
+          className={!isLogin ? "active" : ""}
+        >
           Créer un compte
         </Button>
       </div>
 
-      {feedbackMessage.text && <Alert variant={feedbackMessage.type}>{feedbackMessage.text}</Alert>}
+      {feedbackMessage.text && (
+        <Alert variant={feedbackMessage.type}>{feedbackMessage.text}</Alert>
+      )}
 
       <Row className="justify-content-center">
         <Col md={6}>
           <Card className="p-4 shadow-sm rounded">
-            <h2 className="text-center mb-3">{isLogin ? "Connexion" : "Créer un compte"}</h2>
+            <h2 className="text-center mb-3">
+              {isLogin ? "Connexion" : "Créer un compte"}
+            </h2>
             <Form onSubmit={handleSubmit}>
               {!isLogin && (
                 <>
                   <Form.Group controlId="formLastName" className="mb-3">
                     <Form.Label>Nom de famille</Form.Label>
-                    <Form.Control type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Entrer votre Nom de famille" required />
+                    <Form.Control
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      placeholder="Entrer votre Nom de famille"
+                      required
+                    />
                   </Form.Group>
                   <Form.Group controlId="formFirstName" className="mb-3">
                     <Form.Label>Prénom</Form.Label>
-                    <Form.Control type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="Entrer votre Prénom" required />
+                    <Form.Control
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      placeholder="Entrer votre Prénom"
+                      required
+                    />
                   </Form.Group>
                   <Form.Group className="mb-3">
                     <Form.Label>Etes vous tatoueur ?</Form.Label>
-                    <Form.Check type="radio" name="role" label="Non" value="user" checked={formData.role === "user"} onChange={handleInputChange} className="ms-2" />
-                    <Form.Check type="radio" name="role" label="Oui" value="tattoo" onChange={handleInputChange} className="ms-2" />
+                    <Form.Check
+                      type="radio"
+                      name="role"
+                      label="Non"
+                      value="user"
+                      checked={formData.role === "user"}
+                      onChange={handleInputChange}
+                      className="ms-2"
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="role"
+                      label="Oui"
+                      value="tattoo"
+                      onChange={handleInputChange}
+                      className="ms-2"
+                    />
                   </Form.Group>
                 </>
               )}
               <Form.Group controlId="formEmail" className="mb-3">
                 <Form.Label>Email</Form.Label>
-                <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Entrer votre email" required />
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Entrer votre email"
+                  required
+                />
               </Form.Group>
               <Form.Group controlId="formPassword" className="mb-3">
                 <Form.Label>Mot de passe</Form.Label>
-                <Form.Control type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Mot de passe" required />
+                <Form.Control
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Mot de passe"
+                  required
+                />
               </Form.Group>
               <Button variant="success" type="submit" className="w-100">
                 {isLogin ? "Connexion" : "Créer un compte"}

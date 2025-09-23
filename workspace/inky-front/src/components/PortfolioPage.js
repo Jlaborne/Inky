@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../firebase/AuthProvider";
-import { Container, Card, Row, Col, Form, Button, Spinner, Alert } from "react-bootstrap";
+import {
+  Container,
+  Card,
+  Row,
+  Col,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
 
 const PortfolioPage = () => {
   const { portfolioId } = useParams();
@@ -15,7 +24,9 @@ const PortfolioPage = () => {
   useEffect(() => {
     const fetchPortfolioDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/portfolios/${portfolioId}`);
+        const response = await fetch(
+          `http://localhost:5000/api/portfolios/${portfolioId}`
+        );
         if (!response.ok) throw new Error("Failed to fetch portfolio details");
 
         const data = await response.json();
@@ -29,7 +40,10 @@ const PortfolioPage = () => {
     fetchPortfolioDetails();
   }, [portfolioId]);
 
-  const isOwner = currentUser && portfolioData && currentUser.uid === portfolioData.artist_uid;
+  const isOwner =
+    currentUser &&
+    portfolioData &&
+    currentUser.uid === portfolioData.artist_uid;
 
   const handleFileChange = (e) => setImageFile(e.target.files[0]);
 
@@ -41,11 +55,14 @@ const PortfolioPage = () => {
 
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/portfolios/${portfolioId}/images`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/portfolios/${portfolioId}/images`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to upload image");
 
@@ -63,12 +80,16 @@ const PortfolioPage = () => {
 
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/portfolio-images/${imageId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/portfolio-images/${imageId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      if (!response.ok) throw new Error("Erreur lors de la suppression de l'image");
+      if (!response.ok)
+        throw new Error("Erreur lors de la suppression de l'image");
 
       setImages((prev) => prev.filter((img) => img.id !== imageId));
     } catch (error) {
@@ -78,14 +99,20 @@ const PortfolioPage = () => {
   };
 
   const handleDeletePortfolio = async () => {
-    if (!window.confirm("Supprimer ce portfolio ? Cette action est irréversible.")) return;
+    if (
+      !window.confirm("Supprimer ce portfolio ? Cette action est irréversible.")
+    )
+      return;
 
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/portfolios/${portfolioId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/portfolios/${portfolioId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (!response.ok) throw new Error("Échec de la suppression du portfolio");
 
@@ -106,9 +133,9 @@ const PortfolioPage = () => {
     );
   }
 
-  console.log("🔍 currentUser UID:", currentUser?.uid);
-  console.log("🖼 portfolio owner UID:", portfolioData?.artist_uid);
-  console.log("🧾 isOwner:", isOwner);
+  console.log("currentUser UID:", currentUser?.uid);
+  console.log("portfolio owner UID:", portfolioData?.artist_uid);
+  console.log("isOwner:", isOwner);
 
   return (
     <Container className="mt-5">
@@ -124,11 +151,19 @@ const PortfolioPage = () => {
       {isOwner && (
         <Form.Group controlId="formFile" className="mb-3">
           {/* Ligne 1 : Champ "Parcourir..." */}
-          <Form.Control type="file" onChange={handleFileChange} className="mb-2" />
+          <Form.Control
+            type="file"
+            onChange={handleFileChange}
+            className="mb-2"
+          />
 
           {/* Ligne 2 : Boutons sur la même ligne */}
           <div className="d-flex justify-content-end gap-2">
-            <Button variant="primary" onClick={handleUploadImage} disabled={!imageFile}>
+            <Button
+              variant="primary"
+              onClick={handleUploadImage}
+              disabled={!imageFile}
+            >
               Ajouter une image
             </Button>
             <Button variant="outline-danger" onClick={handleDeletePortfolio}>
@@ -147,7 +182,11 @@ const PortfolioPage = () => {
 
               {isOwner && (
                 <Card.Body className="text-center">
-                  <Button variant="danger" size="sm" onClick={() => handleDeleteImage(img.id)}>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDeleteImage(img.id)}
+                  >
                     Supprimer
                   </Button>
                 </Card.Body>

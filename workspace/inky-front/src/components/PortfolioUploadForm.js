@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useAuth } from "../firebase/AuthProvider";
 
@@ -9,6 +9,10 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
   const [mainImage, setMainImage] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [allTags, setAllTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const handleFileChange = (e) => {
     setMainImage(e.target.files[0]);
@@ -21,6 +25,9 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
     formData.append("title", title);
     formData.append("description", description);
     formData.append("mainImage", mainImage);
+    if (selectedTags.length > 0) {
+      formData.append("tags", selectedTags.join(","));
+    }
 
     try {
       const token = await currentUser.getIdToken();
@@ -36,10 +43,10 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
       if (onPortfolioUploaded) {
         onPortfolioUploaded(newPortfolio);
       }
-      // Réinitialiser le formulaire après succès
       setTitle("");
       setDescription("");
       setMainImage(null);
+      setSelectedTags([]);
     } catch (error) {
       console.error("Error uploading portfolio:", error);
       setErrorMessage(
@@ -48,6 +55,31 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTags = async () => {
+    setLoadingTags(true);
+    try {
+      const resp = await fetch("http://localhost:5000/api/tags");
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      setAllTags(data);
+    } catch (e) {
+      console.error("Erreur récupération tags:", e.message);
+      setAllTags([]);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const toggleTag = (slug) => {
+    setSelectedTags((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
   };
 
   return (
@@ -62,6 +94,33 @@ const PortfolioUploadForm = ({ onPortfolioUploaded }) => {
           onChange={(e) => setTitle(e.target.value)}
         />
       </Form.Group>
+
+      <div className="mb-3">
+        <Form.Label>Styles (tags)</Form.Label>
+        <div className="d-flex flex-wrap gap-2">
+          {loadingTags ? (
+            <span className="text-muted">Chargement des styles…</span>
+          ) : allTags.length === 0 ? (
+            <span className="text-muted">Aucun style disponible</span>
+          ) : (
+            allTags.map((t) => (
+              <Button
+                key={t.slug}
+                size="sm"
+                variant={
+                  selectedTags.includes(t.slug) ? "primary" : "outline-primary"
+                }
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleTag(t.slug);
+                }}
+              >
+                {t.name}
+              </Button>
+            ))
+          )}
+        </div>
+      </div>
 
       <Form.Group controlId="formDescription">
         <Form.Label>Description du Portfolio</Form.Label>

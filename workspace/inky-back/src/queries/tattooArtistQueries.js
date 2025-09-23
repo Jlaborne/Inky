@@ -2,7 +2,15 @@ const { pool } = require("../db/pool");
 const TattooArtist = require("../models/tattooArtist");
 
 // Créer un nouveau profil de tatoueur à partir du Firebase UID
-const createTattooArtist = async (uid, title, phone, city, description, instagramLink, facebookLink) => {
+const createTattooArtist = async (
+  uid,
+  title,
+  phone,
+  city,
+  description,
+  instagramLink,
+  facebookLink
+) => {
   try {
     // Récupère l'UUID (id) de l'utilisateur depuis son Firebase UID
     const userQuery = `SELECT id FROM users WHERE uid = $1;`;
@@ -20,7 +28,15 @@ const createTattooArtist = async (uid, title, phone, city, description, instagra
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `;
-    const values = [userId, title, phone, city, description, instagramLink, facebookLink];
+    const values = [
+      userId,
+      title,
+      phone,
+      city,
+      description,
+      instagramLink,
+      facebookLink,
+    ];
     const result = await pool.query(insertQuery, values);
 
     // On récupère aussi le Firebase UID et on retourne une instance de TattooArtist
@@ -31,19 +47,36 @@ const createTattooArtist = async (uid, title, phone, city, description, instagra
   }
 };
 
-// Récupérer la liste des tatoueurs avec option de filtre (ville, titre)
-const getTattooArtists = async ({ city, title }) => {
-  const query = `
-    SELECT ta.*, u.uid
-    FROM tattoo_artists ta
-    JOIN users u ON ta.user_id = u.id
-    WHERE ($1::text IS NULL OR ta.city ILIKE $1)
-    AND ($2::text IS NULL OR ta.title ILIKE $2)
-  `;
-  const values = [city ? `%${city}%` : null, title ? `%${title}%` : null];
-  const result = await pool.query(query, values);
+const getTattooArtists = async ({ city, tagSlugs = [] }) => {
+  const cityParam = city || null;
 
-  // Retourne un tableau d'instances de TattooArtist
+  if (!tagSlugs || tagSlugs.length === 0) {
+    // ---- Cas sans tags: simple filtre ville/titre
+    const query = `
+      SELECT ta.*, u.uid
+      FROM public.tattoo_artists ta
+      JOIN public.users u ON ta.user_id = u.id
+      WHERE ($1::text IS NULL OR lower(ta.city) LIKE lower($1) || '%')
+      ORDER BY ta.title;
+    `;
+    const values = [cityParam];
+    const result = await pool.query(query, values);
+    return result.rows.map((row) => new TattooArtist(row));
+  }
+
+  // ---- Cas avec tags
+  const queryWithTags = `
+    SELECT DISTINCT ta.*, u.uid
+    FROM public.tattoo_artists ta
+    JOIN public.users u ON u.id = ta.user_id
+    JOIN public.portfolios p ON p.artist_id = ta.id
+    WHERE ($1::text IS NULL OR lower(ta.city) LIKE lower($1) || '%')
+      AND p.tags && $2
+    ORDER BY ta.title;
+  `;
+  const valuesWithTags = [cityParam, tagSlugs];
+  const result = await pool.query(queryWithTags, valuesWithTags);
+
   return result.rows.map((row) => new TattooArtist(row));
 };
 
@@ -86,7 +119,16 @@ const updateTattooArtist = async (firebaseUid, artistProfile) => {
            updated_at = $7
        WHERE id = $8
        RETURNING *;`,
-      [existingArtist.title, existingArtist.phone, existingArtist.instagram_link, existingArtist.facebook_link, existingArtist.city, existingArtist.description, existingArtist.updatedAt, existingArtist.id]
+      [
+        existingArtist.title,
+        existingArtist.phone,
+        existingArtist.instagram_link,
+        existingArtist.facebook_link,
+        existingArtist.city,
+        existingArtist.description,
+        existingArtist.updatedAt,
+        existingArtist.id,
+      ]
     );
 
     return new TattooArtist({ ...result.rows[0], uid: firebaseUid });
@@ -107,7 +149,9 @@ const deleteTattooArtist = async (firebaseUid) => {
       AND u.uid = $1
       RETURNING ta.*;
     `;
-    const deleteArtistResult = await pool.query(deleteArtistQuery, [firebaseUid]);
+    const deleteArtistResult = await pool.query(deleteArtistQuery, [
+      firebaseUid,
+    ]);
 
     if (deleteArtistResult.rowCount === 0) {
       throw new Error("Profil tatoueur introuvable.");

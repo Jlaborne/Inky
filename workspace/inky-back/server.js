@@ -7,6 +7,7 @@ const userRoutes = require("./src/routes/userRoutes");
 const tattooArtistRoutes = require("./src/routes/tattooArtistsRoutes");
 const authenticateToken = require("./src/middleware/authenticateToken");
 const portfolioRoutes = require("./src/routes/portfolioRoutes");
+const tagRoutes = require("./src/routes/tagRoutes");
 
 const app = express();
 
@@ -26,6 +27,9 @@ app.use("/api", portfolioRoutes);
 
 // Serve 'uploads' directory as a static resource
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Tags routes
+app.use("/api", tagRoutes);
 
 // Example of a protected route
 app.get("/protected", authenticateToken, (req, res) => {

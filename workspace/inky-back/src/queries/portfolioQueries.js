@@ -30,22 +30,34 @@ const getPortfolioByIdWithImages = async (portfolioId) => {
 };
 
 // Crée un nouveau portfolio pour un artiste identifié par son UID Firebase
-const createPortfolio = async (firebaseUid, title, description, mainImageFilename) => {
+const createPortfolio = async (
+  firebaseUid,
+  title,
+  description,
+  mainImageFilename,
+  tagSlugs = []
+) => {
   const mainImageUrl = `http://localhost:5000/uploads/${mainImageFilename}`;
 
   const insertQuery = `
-    INSERT INTO portfolios (artist_id, title, main_image, description)
+    INSERT INTO portfolios (artist_id, title, main_image, description, tags)
     VALUES (
       (SELECT ta.id
        FROM tattoo_artists ta
        JOIN users u ON ta.user_id = u.id
        WHERE u.uid = $1),
-      $2, $3, $4
+      $2, $3, $4, $5::text[]
     )
     RETURNING *;
   `;
 
-  const result = await pool.query(insertQuery, [firebaseUid, title, mainImageUrl, description]);
+  const result = await pool.query(insertQuery, [
+    firebaseUid,
+    title,
+    mainImageUrl,
+    description || null,
+    tagSlugs,
+  ]);
   return result.rows[0];
 };
 
@@ -80,7 +92,9 @@ const deletePortfolioImage = async (imageId) => {
 
 // Supprime un portfolio et toutes ses images associées
 const deletePortfolio = async (portfolioId) => {
-  await pool.query(`DELETE FROM portfolio_images WHERE portfolio_id = $1`, [portfolioId]);
+  await pool.query(`DELETE FROM portfolio_images WHERE portfolio_id = $1`, [
+    portfolioId,
+  ]);
 
   const deleteQuery = `
     DELETE FROM portfolios

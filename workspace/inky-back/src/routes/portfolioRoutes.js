@@ -5,21 +5,36 @@ const upload = require("../middleware/multer");
 const authenticateToken = require("../middleware/authenticateToken");
 
 // Route to create a new portfolio
-router.post("/portfolios", authenticateToken, upload.single("mainImage"), portfolioController.createPortfolio);
+router.post(
+  "/portfolios",
+  authenticateToken,
+  upload.single("mainImage"),
+  portfolioController.createPortfolio
+);
 
 // Route to add an image to a portfolio
-router.post("/portfolios/:portfolioId/images", authenticateToken, upload.single("image"), portfolioController.addPortfolioImage);
+router.post(
+  "/portfolios/:portfolioId/images",
+  authenticateToken,
+  upload.single("image"),
+  portfolioController.addPortfolioImage
+);
 
 // Route to fetch all portfolios for an artist
-router.get("/artists/:artistUid/portfolios", authenticateToken, portfolioController.getPortfoliosByArtist);
+router.get(
+  "/artists/:artistUid/portfolios",
+  authenticateToken,
+  portfolioController.getPortfoliosByArtist
+);
 
 // Route to fetch portfolio details
 router.get("/portfolios/:portfolioId", portfolioController.getPortfolioDetails);
 
 // Route to delete a porfolio
-router.delete("/portfolios/:portfolioId", authenticateToken, portfolioController.deletePortfolio);
-
-// Route to delete a porfolio image
-router.delete("/portfolio-images/:imageId", authenticateToken, portfolioController.deletePortfolioImage);
+router.delete(
+  "/portfolios/:portfolioId",
+  authenticateToken,
+  portfolioController.deletePortfolio
+);
 
 module.exports = router;
