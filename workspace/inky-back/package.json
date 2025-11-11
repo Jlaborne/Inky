@@ -4,12 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "NODE_ENV=test jest --runInBand"
-  },
-  "jest": {
-    "setupFiles": [
-      "./jest.setup.js"
-    ]
+    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles",
+    "test:ci": "cross-env NODE_ENV=test jest --ci --coverage --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.22.0",
     "eslint-plugin-react": "^7.37.4",
     "globals": "^16.0.0",
