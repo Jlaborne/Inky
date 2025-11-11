@@ -4,8 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles",
-    "test:ci": "cross-env NODE_ENV=test jest --ci --coverage --runInBand"
+    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
   },
   "keywords": [],
   "author": "",

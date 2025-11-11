@@ -1,7 +1,7 @@
 const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
-const admin = require("firebase-admin");
+const admin = require('../middleware/firebaseAdmin');
 
 // Register user (Firebase + PostgreSQL)
 const registerUser = async (req, res) => {
@@ -36,8 +36,12 @@ const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during registration:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error?.code === 'auth/email-already-exists') {
+    return res.status(400).json({ error: 'Email already in use' });
   }
+
+  return res.status(500).json({ error: "Internal Server Error" });
+}
 };
 
 // Get all users
