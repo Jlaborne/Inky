@@ -96,60 +96,10 @@ const deletePortfolioImageController = async (req, res) => {
     const deleted = await deletePortfolioImage(imageId);
     res.status(200).json({ message: "Image supprimée", deleted });
   } catch (error) {
-    console.error("eletePortfolioImageController :", error.message);
+    console.error("DeletePortfolioImageController :", error.message);
     res.status(500).json({ error: "Failed to delete image" });
   }
 };
-
-/*
-const setPortfolioTags = async (req, res) => {
-  const { portfolioId } = req.params;
-  const { tags } = req.body;
-
-  if (!Array.isArray(tags)) {
-    return res
-      .status(400)
-      .json({ error: "Body must contain 'tags' array of slugs" });
-  }
-  const slugs = tags.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
-
-  try {
-    await pool.query("BEGIN");
-
-    // Récupérer les tag_ids existants par slug
-    const { rows: tagRows } = await pool.query(
-      "SELECT id, slug FROM public.tags WHERE slug = ANY($1::text[])",
-      [slugs]
-    );
-    const foundSlugs = new Set(tagRows.map((r) => r.slug));
-    const missing = slugs.filter((s) => !foundSlugs.has(s));
-    if (missing.length) {
-      await pool.query("ROLLBACK");
-      return res.status(400).json({ error: "Unknown tag slugs", missing });
-    }
-
-    // Remplacer l’ensemble des tags du portfolio (idempotent)
-    await pool.query(
-      "DELETE FROM public.portfolio_tags WHERE portfolio_id = $1",
-      [portfolioId]
-    );
-
-    const values = tagRows.map((r) => `('${portfolioId}','${r.id}')`).join(",");
-    if (values) {
-      await pool.query(
-        `INSERT INTO public.portfolio_tags (portfolio_id, tag_id) VALUES ${values}
-         ON CONFLICT DO NOTHING`
-      );
-    }
-
-    await pool.query("COMMIT");
-    return res.json({ portfolioId, tags: slugs });
-  } catch (e) {
-    await pool.query("ROLLBACK");
-    console.error("setPortfolioTags error:", e);
-    return res.status(500).send("Server error");
-  }
-};*/
 
 module.exports = {
   createPortfolio: createPortfolioController,

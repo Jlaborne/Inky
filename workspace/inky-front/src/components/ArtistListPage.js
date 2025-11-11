@@ -16,22 +16,20 @@ const ArtistListPage = () => {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [allTags, setAllTags] = useState([]); // tags depuis l'API
-  const [selectedTags, setSelectedTags] = useState([]); // slugs sélectionnés
+  const [allTags, setAllTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [loadingTags, setLoadingTags] = useState(false);
-
-  // --- API CALLS ---
 
   const fetchTags = async () => {
     setLoadingTags(true);
     try {
       const resp = await fetch("http://localhost:5000/api/tags");
       if (!resp.ok) throw new Error(await resp.text());
-      const data = await resp.json(); // attendu: [{ name, slug }, ...]
+      const data = await resp.json();
       setAllTags(data);
     } catch (e) {
       console.error("Erreur récupération tags:", e.message);
-      setAllTags([]); // fallback: vide
+      setAllTags([]);
     } finally {
       setLoadingTags(false);
     }
@@ -54,20 +52,17 @@ const ArtistListPage = () => {
     }
   };
 
-  // Charger les tags au montage
   useEffect(() => {
     fetchTags();
   }, []);
 
-  // Rechercher quand ville ou tags changent (avec petit debounce sur la ville)
+  // Rechercher quand ville ou tags changent
   useEffect(() => {
     const delay = setTimeout(() => {
       fetchArtists(city, selectedTags);
     }, 200);
     return () => clearTimeout(delay);
   }, [city, selectedTags]);
-
-  // --- UI handlers ---
 
   const toggleTag = (slug) => {
     setSelectedTags((prev) =>
@@ -76,8 +71,6 @@ const ArtistListPage = () => {
   };
 
   const resetTags = () => setSelectedTags([]);
-
-  // --- RENDER ---
 
   return (
     <Container className="mt-4">
@@ -94,7 +87,7 @@ const ArtistListPage = () => {
         />
       </Form.Group>
 
-      {/* Filtre tags (depuis l'API) */}
+      {/* Filtre tags */}
       <div className="mb-4 d-flex flex-wrap gap-2 justify-content-center">
         {loadingTags ? (
           <span className="text-muted">Chargement des styles…</span>
@@ -170,14 +163,14 @@ const ArtistListPage = () => {
                     </div>
                   </Card.Text>
 
-                  {/* Badge de pertinence si l'API le renvoie et si un filtre tag est actif */}
+                  {/* Badge de pertinence si l'API le renvoie et si un filtre tag est actif
                   {selectedTags.length > 0 &&
                     typeof artist.n_portfolios_with_tag === "number" && (
                       <Badge bg="secondary" className="align-self-start mb-2">
                         {artist.n_portfolios_with_tag} portfolio(s)
                         correspondant(s)
                       </Badge>
-                    )}
+                    )} */}
 
                   <Link
                     to={`/artist/${artist.uid}`}

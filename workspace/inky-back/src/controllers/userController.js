@@ -1,11 +1,6 @@
 const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
-/*const { auth } = require("../../firebase");
-const {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} = require("firebase/auth");*/
 const admin = require("firebase-admin");
 
 // Register user (Firebase + PostgreSQL)
@@ -28,11 +23,6 @@ const registerUser = async (req, res) => {
     });
     const uid = userRecord.uid;
     console.log("Generated Firebase UID:", uid);
-
-    // (Optionnel) setCustomUserClaims si tu veux des rôles côté token
-    // await admin.auth().setCustomUserClaims(uid, { role });
-
-    // 2) Enregistrer en DB (sans password)
     const user = new User(uid, lastName, firstName, email, role);
     await userQueries.createUser(user);
 
@@ -48,54 +38,6 @@ const registerUser = async (req, res) => {
     console.error("Error during registration:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
-
-  //let userCredential = null;
-
-  /*try {
-    // Step 1: Register user in Firebase
-    userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-    const uid = userCredential.user.uid;
-
-    if (!uid) {
-      console.error("Error: Firebase UID is missing!");
-      return res.status(500).json({ error: "Failed to get Firebase UID" });
-    }
-
-    console.log("Generated Firebase UID:", uid);
-
-    // Step 2: Save user to PostgreSQL WITHOUT PASSWORD
-    const user = new User(uid, lastName, firstName, email, role);
-    await userQueries.createUser(user);
-
-    // Step 3: Set Redirect URL
-    let redirectTo = role === "tattoo" ? "/create-artist" : "/";
-
-    return res.status(201).json({
-      uid,
-      message: "User registered successfully",
-      redirectTo,
-    });
-  } catch (error) {
-    console.error("Error during registration:", error);
-
-    // Check for specific Firebase error codes
-    if (error.code === "auth/email-already-in-use") {
-      return res.status(400).json({ error: "Email already in use" });
-    }
-
-    // Step 4: Rollback Firebase User if PostgreSQL Fails
-    if (userCredential) {
-      await userCredential.user.delete();
-      console.log("Rolled back Firebase user:", userCredential.user.uid);
-    }
-
-    return res.status(500).json({ error: "Internal Server Error" });
-  }*/
-
 };
 
 // Get all users

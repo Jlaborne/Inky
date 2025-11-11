@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const publicRoutes = ["/", "/artists"]; // Routes accessibles sans connexion
+    const publicRoutes = ["/", "/artists"];
     if (
       !currentUser &&
       !authLoading &&
@@ -70,5 +70,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the AuthContext
 export const useAuth = () => useContext(AuthContext);

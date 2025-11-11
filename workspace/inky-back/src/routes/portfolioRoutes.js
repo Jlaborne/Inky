@@ -20,6 +20,13 @@ router.post(
   portfolioController.addPortfolioImage
 );
 
+// Route to delete an image from a portfolio
+router.delete(
+  "/portfolio-images/:imageId",
+  authenticateToken,
+  portfolioController.deletePortfolioImage
+);
+
 // Route to fetch all portfolios for an artist
 router.get(
   "/artists/:artistUid/portfolios",

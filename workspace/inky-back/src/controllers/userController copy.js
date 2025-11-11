@@ -1,4 +1,4 @@
-const { validationResult } = require("express-validator");
+/*const { validationResult } = require("express-validator");
 const userQueries = require("../queries/userQueries");
 const User = require("../models/user");
 const { auth } = require("../../firebase");
@@ -109,14 +109,14 @@ const registerUser = async (req, res) => {
 
     // Save user to your Postgres database
     const user = new User(uid, lastName, firstName, email, password, role);
-    await userQueries.createUser(user); // Adjust your createUser query to accept uid
+    await userQueries.createUser(user);
 
     // Redirect based on role
     if (role === "tattoo") {
       res.status(201).json({
         uid,
         message: "Tattoo artist registered. Please create your profile.",
-        redirectTo: "/create-tattoo-artist-page", // Frontend route to create tattoo artist page
+        redirectTo: "/create-tattoo-artist-page",
       });
     } else {
       res.status(201).json({ uid, message: "User registered successfully." });
@@ -154,7 +154,7 @@ const loginUser = async (req, res) => {
     // Send response with user information
     res.status(200).json({
       uid: user.uid,
-      role: user.role, // Assuming you have a role property in your User model
+      role: user.role,
       message: "Login successful",
     });
   } catch (error) {
@@ -175,3 +175,4 @@ module.exports = {
   registerUser,
   loginUser,
 };
+*/

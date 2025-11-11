@@ -28,12 +28,10 @@ const Header = () => {
           alignItems: "center",
         }}
       >
-        {/* Colonne gauche */}
         <div className="justify-self-start">
           {showBackButton && <BackButton />}
         </div>
 
-        {/* Centre — Inky parfaitement centré */}
         <Navbar.Brand
           onClick={handleInkyClick}
           className="fw-bold fs-4"
@@ -42,7 +40,6 @@ const Header = () => {
           Inky
         </Navbar.Brand>
 
-        {/* Colonne droite */}
         <Nav className="align-items-center" style={{ justifySelf: "end" }}>
           {currentUser ? (
             <>

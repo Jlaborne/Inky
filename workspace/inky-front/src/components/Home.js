@@ -82,21 +82,6 @@ const Home = () => {
     }
   };
 
-  // Fetch user role function
-  /*
-  const fetchUserRole = async (uid) => {
-    const cachedRole = localStorage.getItem(`user_role_${uid}`);
-    if (cachedRole) return cachedRole;
-
-    const response = await fetch(`http://localhost:5000/api/users/${uid}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch user role");
-    }
-    const data = await response.json();
-    localStorage.setItem(`user_role_${uid}`, data.role);
-    return data.role;
-  };*/
-
   return (
     <Container className="mt-5">
       <header className="text-center mb-4">

@@ -12,10 +12,6 @@ export const signUp = (email, password) => {
 
 // Sign in user
 export const signIn = async (email, password) => {
-  /*return signInWithEmailAndPassword(auth, email, password).catch((error) => {
-    console.error("Sign-in error:", error);
-    throw error;
-  });*/
   try {
     return await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {

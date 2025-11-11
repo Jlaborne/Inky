@@ -9,7 +9,6 @@ import {
   Alert,
   Spinner,
   Button,
-  Badge,
 } from "react-bootstrap";
 import {
   FaInstagram,
@@ -181,7 +180,7 @@ const ArtistPage = () => {
               </div>
             </Col>
 
-            {/* Réseaux sociaux - ALIGNÉS À DROITE */}
+            {/* Réseaux sociaux */}
             <Col md={6} lg={6}>
               <h5 className="text-secondary mb-3 text-center">
                 Réseaux sociaux
@@ -241,107 +240,115 @@ const ArtistPage = () => {
       </Card>
 
       {/* Section Portfolio */}
-      <div className="mb-5">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="mb-1">Portfolio</h2>
-            <p className="text-muted mb-0">
-              {portfolios.length > 0
-                ? `${portfolios.length} projet${
-                    portfolios.length > 1 ? "s" : ""
-                  } disponible${portfolios.length > 1 ? "s" : ""}`
-                : "Aucun projet pour le moment"}
-            </p>
-          </div>
-        </div>
-
-        {isOwner && (
-          <Card
-            className="mb-4 border-dashed border-2"
-            style={{ borderStyle: "dashed !important" }}
-          >
-            <Card.Body className="p-3">
-              <PortfolioUploadForm
-                onPortfolioUploaded={(newPortfolio) => {
-                  setPortfolios((prev) => [...prev, newPortfolio]);
-                }}
-              />
-            </Card.Body>
-          </Card>
-        )}
-
-        {/* Grille de portfolios avec tailles uniformes */}
-        {portfolios.length > 0 ? (
-          <Row className="g-4">
-            {portfolios.map((portfolio) => (
-              <Col key={portfolio.id} xl={4} lg={4} md={6} sm={12}>
-                <Link
-                  to={`/portfolio/${portfolio.id}`}
-                  className="text-decoration-none"
-                >
-                  <Card className="h-100 border-0 shadow-sm portfolio-card overflow-hidden">
-                    <div
-                      className="portfolio-image-container"
-                      style={{
-                        height: "280px",
-                        overflow: "hidden",
-                        backgroundColor: "#f8f9fa",
-                      }}
-                    >
-                      <Card.Img
-                        variant="top"
-                        src={portfolio.main_image}
-                        className="w-100 h-100"
-                        style={{
-                          objectFit: "cover",
-                          transition: "transform 0.3s ease",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.target.style.transform = "scale(1.05)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.target.style.transform = "scale(1)")
-                        }
-                      />
-                    </div>
-                    <Card.Body className="p-3">
-                      <Card.Title className="h6 mb-0 text-truncate">
-                        {portfolio.title}
-                      </Card.Title>
-                    </Card.Body>
-                  </Card>
-                </Link>
-              </Col>
-            ))}
-          </Row>
-        ) : (
-          <Card className="text-center py-5 border-0 bg-light">
-            <Card.Body>
-              <div className="text-muted mb-3">
-                <FaInstagram size={48} className="opacity-50" />
+      <Card className="text-center py-5 border-0 bg-white">
+        <Card.Body>
+          <div className="mb-5">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h2 className="mb-1">Portfolio</h2>
+                <p className="text-muted mb-0">
+                  {portfolios.length > 0
+                    ? `${portfolios.length} projet${
+                        portfolios.length > 1 ? "s" : ""
+                      } disponible${portfolios.length > 1 ? "s" : ""}`
+                    : "Aucun projet pour le moment"}
+                </p>
               </div>
-              <h5 className="text-muted mb-2">Aucun portfolio disponible</h5>
-              <p className="text-muted mb-0">
-                {isOwner
-                  ? "Ajoutez votre premier projet pour commencer à présenter votre travail !"
-                  : "L'artiste n'a pas encore publié de projets."}
-              </p>
-            </Card.Body>
-          </Card>
-        )}
-      </div>
+            </div>
+
+            {isOwner && (
+              <Card className="mb-5 border-0 shadow-sm bg-light portfolio-upload-card">
+                <Card.Body className="p-3">
+                  <PortfolioUploadForm
+                    onPortfolioUploaded={(newPortfolio) => {
+                      setPortfolios((prev) => [...prev, newPortfolio]);
+                    }}
+                  />
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* Grille de portfolios */}
+            {portfolios.length > 0 ? (
+              <Row className="g-4">
+                {portfolios.map((portfolio) => (
+                  <Col key={portfolio.id} xl={4} lg={4} md={6} sm={12}>
+                    <Link
+                      to={`/portfolio/${portfolio.id}`}
+                      className="text-decoration-none"
+                    >
+                      <Card className="h-100 border-0 shadow-sm portfolio-card overflow-hidden">
+                        <div className="portfolio-image-container">
+                          <Card.Img
+                            variant="top"
+                            src={portfolio.main_image}
+                            className="w-100 h-100 portfolio-image"
+                          />
+                        </div>
+                        <Card.Body className="p-3">
+                          <Card.Title className="h6 mb-0 text-truncate">
+                            {portfolio.title}
+                          </Card.Title>
+                        </Card.Body>
+                      </Card>
+                    </Link>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <Card className="text-center py-5 border-0 bg-light">
+                <Card.Body>
+                  <div className="text-muted mb-3">
+                    <FaInstagram size={48} className="opacity-50" />
+                  </div>
+                  <h5 className="text-muted mb-2">
+                    Aucun portfolio disponible
+                  </h5>
+                  <p className="text-muted mb-0">
+                    {isOwner
+                      ? "Ajoutez votre premier projet pour commencer à présenter votre travail !"
+                      : "L'artiste n'a pas encore publié de projets."}
+                  </p>
+                </Card.Body>
+              </Card>
+            )}
+          </div>
+        </Card.Body>
+      </Card>
 
       <style jsx>{`
-        .border-dashed {
-          border-style: dashed !important;
-        }
+        /* Carte portfolio avec hover */
         .portfolio-card {
+          background-color: #e3edfcff;
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
           transition: all 0.3s ease;
           cursor: pointer;
         }
         .portfolio-card:hover {
           transform: translateY(-5px);
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Conteneur image */
+        .portfolio-image-container {
+          height: 280px;
+          overflow: hidden;
+          background-color: #f8f9fa;
+        }
+
+        /* Image du portfolio */
+        .portfolio-image {
+          object-fit: cover;
+          transition: transform 0.3s ease;
+        }
+        .portfolio-image:hover {
+          transform: scale(1.05);
+        }
+
+        /* Upload Card */
+        .portfolio-upload-card {
+          border: 1px dashed #000 !important;
+          border-radius: 0.5rem;
         }
       `}</style>
     </Container>
