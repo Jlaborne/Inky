@@ -1,4 +1,28 @@
 const { pool } = require("../db/pool");
+const fs = require("fs").promises;
+const path = require("path");
+
+// Chemin vers le dossier uploads (à adapter si besoin)
+const UPLOAD_DIR = process.env.FILES_DIR || path.join(__dirname, "..", "uploads");
+
+// Fonction utilitaire pour supprimer un fichier sans faire crasher le serveur
+const deleteFileIfExists = async (fileUrl) => {
+  if (!fileUrl) return;
+
+  try {
+    // On récupère juste le nom du fichier depuis l'URL
+    const filename = path.basename(fileUrl); // ex: "image123.jpg"
+    const filepath = path.join(UPLOAD_DIR, filename);
+
+    await fs.unlink(filepath);
+    console.log("Fichier supprimé :", filepath);
+  } catch (err) {
+    // ENOENT = fichier déjà supprimé / introuvable → on ignore
+    if (err.code !== "ENOENT") {
+      console.error("Erreur lors de la suppression du fichier :", err);
+    }
+  }
+};
 
 // Récupère un portfolio et ses images, avec le Firebase UID de l'artiste
 const getPortfolioByIdWithImages = async (portfolioId) => {
@@ -75,7 +99,7 @@ const addImageToPortfolio = async (portfolioId, filename) => {
   return result.rows[0];
 };
 
-// Supprime une image d’un portfolio
+// Supprime une image d’un portfolio (DB + fichier)
 const deletePortfolioImage = async (imageId) => {
   const deleteQuery = `
     DELETE FROM portfolio_images
@@ -87,15 +111,31 @@ const deletePortfolioImage = async (imageId) => {
   if (result.rows.length === 0) {
     throw new Error("Image introuvable ou déjà supprimée");
   }
-  return result.rows[0];
+
+  const deletedImage = result.rows[0];
+
+  // Supprime le fichier physique
+  await deleteFileIfExists(deletedImage.image_url);
+
+  return deletedImage;
 };
 
-// Supprime un portfolio et toutes ses images associées
+// Supprime un portfolio et toutes ses images associées (DB + fichiers)
 const deletePortfolio = async (portfolioId) => {
+  // 1. Récupérer toutes les images pour connaître leurs URLs
+  const imagesQuery = `
+    SELECT image_url
+    FROM portfolio_images
+    WHERE portfolio_id = $1;
+  `;
+  const imagesResult = await pool.query(imagesQuery, [portfolioId]);
+
+  // 2. Supprimer les images en base
   await pool.query(`DELETE FROM portfolio_images WHERE portfolio_id = $1`, [
     portfolioId,
   ]);
 
+  // 3. Supprimer le portfolio et récupérer ses infos (notamment main_image)
   const deleteQuery = `
     DELETE FROM portfolios
     WHERE id = $1
@@ -106,7 +146,18 @@ const deletePortfolio = async (portfolioId) => {
   if (result.rows.length === 0) {
     throw new Error("Portfolio introuvable ou déjà supprimé");
   }
-  return result.rows[0];
+
+  const deletedPortfolio = result.rows[0];
+
+  // 4. Supprimer les fichiers physiques (main_image + images du portfolio)
+  const deleteFilesPromises = [
+    deleteFileIfExists(deletedPortfolio.main_image),
+    ...imagesResult.rows.map((img) => deleteFileIfExists(img.image_url)),
+  ];
+
+  await Promise.all(deleteFilesPromises);
+
+  return deletedPortfolio;
 };
 
 // Récupère tous les portfolios d'un artiste à partir de son Firebase UID
