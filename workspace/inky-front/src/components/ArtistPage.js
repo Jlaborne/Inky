@@ -46,6 +46,7 @@ const ArtistPage = () => {
 
         const data = await response.json();
         console.log("Artist data fetched:", data);
+        console.log("Artist data keys:", Object.keys(data));
         setArtistData(data);
 
         fetchPortfolios(token);
@@ -86,7 +87,7 @@ const ArtistPage = () => {
   const isOwner = currentUser?.uid === artistData?.uid;
 
   console.log("currentUser:", currentUser?.uid);
-  console.log("artistData.user_id:", artistData?.user_id);
+  console.log("artistData.uid:", artistData?.uid);
   console.log("isOwner:", isOwner);
 
   const handleEditClick = () => {

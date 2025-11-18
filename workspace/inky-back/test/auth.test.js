@@ -26,10 +26,9 @@ jest.mock('../src/middleware/firebaseAdmin', () => {
     verifyIdToken: async () => ({ uid: 'test-uid', admin: false }),
   });
 
-  return admin; // CommonJS require('firebase-admin') -> cet objet
+  return admin;
 });
 
-// (facultatif) bypass le middleware d'auth si présent
 jest.mock('../src/middleware/authenticateToken', () => {
   return () => (req, res, next) => next();
 });
@@ -52,7 +51,7 @@ describe('Authentication API Tests', () => {
 });
 
 afterAll(async () => {
-  await pool.end(); // ferme proprement la pool
+  await pool.end();
 })
 
   it('201 -> crée un nouvel utilisateur', async () => {
@@ -61,7 +60,6 @@ afterAll(async () => {
     expect(res.body).toHaveProperty('message', 'User registered successfully');
 
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [baseUser.email]);
-    // adapte si tes colonnes ont d’autres noms
     expect(rows[0]).toMatchObject({
       email: baseUser.email,
       last_name: baseUser.lastName,

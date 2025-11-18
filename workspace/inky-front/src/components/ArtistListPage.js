@@ -7,7 +7,6 @@ import {
   Form,
   Spinner,
   Button,
-  Badge,
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
@@ -162,16 +161,6 @@ const ArtistListPage = () => {
                       <strong>Description:</strong> {artist.description}
                     </div>
                   </Card.Text>
-
-                  {/* Badge de pertinence si l'API le renvoie et si un filtre tag est actif
-                  {selectedTags.length > 0 &&
-                    typeof artist.n_portfolios_with_tag === "number" && (
-                      <Badge bg="secondary" className="align-self-start mb-2">
-                        {artist.n_portfolios_with_tag} portfolio(s)
-                        correspondant(s)
-                      </Badge>
-                    )} */}
-
                   <Link
                     to={`/artist/${artist.uid}`}
                     className="btn btn-primary mt-auto"
