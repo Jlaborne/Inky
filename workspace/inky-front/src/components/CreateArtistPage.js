@@ -222,8 +222,7 @@ const CreateArtistPage = () => {
               />
               <div className="d-flex justify-content-between">
                 <Form.Text className="text-muted">
-                  Des mots-clés (réalisme, fine line, old school…) aident le
-                  référencement.
+                  Décrivez-vous en quelques lignes.
                 </Form.Text>
                 <Form.Text className="text-muted">
                   {artistData.description.length}/1000

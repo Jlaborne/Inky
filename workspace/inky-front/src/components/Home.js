@@ -48,7 +48,7 @@ const Home = () => {
     try {
       if (isLogin) {
         await signIn(formData.email, formData.password);
-        setFeedbackMessage({ type: "success", text: "Login successful!" });
+        setFeedbackMessage({ type: "success", text: "Connexion réussie !" });
       } else {
         const res = await fetch(
           `${
@@ -60,10 +60,10 @@ const Home = () => {
             body: JSON.stringify(formData),
           }
         );
-        if (!res.ok) throw new Error("Registration failed.");
+        if (!res.ok) throw new Error("Échec de l'inscription.");
         setFeedbackMessage({
           type: "success",
-          text: "User registered successfully!",
+          text: "Compte créé avec succès ! Veuillez vous connecter.",
         });
         setFormData({
           lastName: "",
